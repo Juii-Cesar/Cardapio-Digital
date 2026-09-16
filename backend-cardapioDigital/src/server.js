@@ -6,6 +6,7 @@ const pool = require("../src/config/db");
 //rotas
 const productRoutes = require('./routes/productRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
+const deliveryRoutes = require('./routes/deliveryRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -15,6 +16,7 @@ app.use(cors());
 app.use(express.json());
 app.use('/api',productRoutes);
 app.use('/api', categoryRoutes);
+app.use('/api',deliveryRoutes);
 
 //rota de teste
 app.get('/', (req,res)=>{
