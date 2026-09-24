@@ -5,7 +5,7 @@ const supabase = require("../config/supabase");
 const getProducts = async (req, res) => {
   try {
     const productsResult = await db.query(
-      `SELECT p.id, p.nome, p.preco, p.descricao, p.url_img_produto, c.nome AS categoria
+      `SELECT p.id, p.id_categoria, p.nome, p.preco, p.descricao, p.url_img_produto, c.nome AS categoria
             FROM produtos p 
             LEFT JOIN categorias c ON p.id_categoria=c.id 
             WHERE p.ativo = true

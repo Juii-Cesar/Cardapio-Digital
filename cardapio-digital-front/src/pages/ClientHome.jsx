@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import logoImg from '../assets/logo.png'; 
+import ProdutoModal from '../components/ProdutoModal';
+import CartBar from '../components/CartBar';
 
 export default function ClientHome() {
   const [categorias, setCategorias] = useState([]);
   const [categoriaAtiva, setCategoriaAtiva] = useState('');
   const [produtos, setProdutos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [produtoSelecionado, setProdutoSelecionado] = useState(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -30,7 +33,7 @@ export default function ClientHome() {
     fetchData();
   }, []);
 
-const produtosFiltrados = produtos.filter(produto => String(produto.id_categoria) === String(categoriaAtiva));
+  const produtosFiltrados = produtos.filter(produto => String(produto.id_categoria) === String(categoriaAtiva));
 
   return (
     <div className="min-h-screen bg-shaday-bg text-shaday-text font-sans mx-auto max-w-md shadow-2xl relative">
@@ -70,7 +73,11 @@ const produtosFiltrados = produtos.filter(produto => String(produto.id_categoria
           </div>
         ) : produtosFiltrados.length > 0 ? (
           produtosFiltrados.map((produto) => (
-            <div key={produto.id} className="w-full flex bg-shaday-card rounded-xl p-3 gap-4 shadow-sm border border-white/5 active:scale-[0.98] transition-transform cursor-pointer">
+            <div 
+              key={produto.id} 
+              onClick={() => setProdutoSelecionado(produto)}
+              className="w-full flex bg-shaday-card rounded-xl p-3 gap-4 shadow-sm border border-white/5 active:scale-[0.98] transition-transform cursor-pointer"
+            >
               <div className="flex-1 min-w-0 flex flex-col justify-center">
                 <h3 className="font-semibold text-shaday-text text-base truncate mb-1">
                   {produto.nome}
@@ -83,7 +90,7 @@ const produtosFiltrados = produtos.filter(produto => String(produto.id_categoria
                 </span>
               </div>
               <img
-                src={produto.url_img_produto}
+                src={produto.url_img_produto || logoImg}
                 alt={produto.nome}
                 className="w-24 h-24 rounded-lg object-cover bg-black/50 shrink-0"
               />
@@ -97,6 +104,14 @@ const produtosFiltrados = produtos.filter(produto => String(produto.id_categoria
           </div>
         )}
       </main>
+
+      {produtoSelecionado && (
+        <ProdutoModal 
+          produto={produtoSelecionado} 
+          onClose={() => setProdutoSelecionado(null)} 
+        />
+      )}
+      <CartBar />
     </div>
   );
 }
