@@ -1,7 +1,9 @@
 import { useCart } from '../contexts/CartContext';
+import { useNavigate } from 'react-router-dom';
 
 export default function CartBar() {
   const { cartItems } = useCart();
+  const navigate = useNavigate();
 
   if (cartItems.length === 0) return null;
 
@@ -28,7 +30,7 @@ export default function CartBar() {
 
         <button 
           className="bg-shaday-red text-white px-5 py-2.5 rounded-xl font-semibold text-sm hover:bg-red-700 active:scale-[0.96] transition-all shrink-0"
-          onClick={() => console.log("Abrir tela do carrinho!")} 
+          onClick={() => navigate('/checkout')} 
         >
           Ver carrinho
         </button>
