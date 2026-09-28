@@ -8,6 +8,7 @@ const productRoutes = require('./routes/productRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const deliveryRoutes = require('./routes/deliveryRoutes');
 const orderRoutes =  require('./routes/orderRoutes');
+const promoRoutes = require('./routes/promoRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -19,6 +20,7 @@ app.use('/api',productRoutes);
 app.use('/api', categoryRoutes);
 app.use('/api',deliveryRoutes);
 app.use('/api', orderRoutes);
+app.use('/api', promoRoutes);
 
 //rota de teste
 app.get('/', (req,res)=>{
