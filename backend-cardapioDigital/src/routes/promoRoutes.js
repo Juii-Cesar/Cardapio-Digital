@@ -7,5 +7,7 @@ const upload = multer({storage: multer.memoryStorage()});
 
 router.get('/promo',promoController.getPromos);
 router.post('/promo', upload.single('imagem'), promoController.createPromo);
+router.put('/promo/:id', promoController.updatePromo);
+router.delete('/promo/:id', promoController.deletePromo);
 
 module.exports = router;
