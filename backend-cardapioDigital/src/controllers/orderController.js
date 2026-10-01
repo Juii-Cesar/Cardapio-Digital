@@ -1,17 +1,18 @@
 const db = require('../config/db');
+const bcrypt = require('bcryptjs');
 
 //cria pedidoo completo com usuario, endereço e itens do carrinho
 const createOrder= async(req, res)=>{
     const{
-        cliente: {nome, tel, rua, numero, complemento, id_bairro, cep},
+        cliente: {nome, tel, senha, rua, numero, complemento, id_bairro, cep},
         itens, //recebe array com id produto ou da promo, qtd, obs
         observacao_geral
     }= req.body;
 
 
     //validaçao de entrada
-    if (!nome || !tel || !rua || !numero || !id_bairro){
-        return res.status(400).json({error: 'Dados do cliente, endereço e bairro são obrigatorios.'});
+    if (!nome || !tel || !senha || !rua || !numero || !id_bairro){
+        return res.status(400).json({error: 'Dados do cliente (incluindo senha), endereço e bairro são obrigatorios.'});
     }
 
     if (!itens || !Array.isArray(itens) || itens.length === 0) {
@@ -36,21 +37,43 @@ const createOrder= async(req, res)=>{
 
         const taxaEntrega = parseFloat(neighborhoodResult.rows[0].taxa);
 
-        let userId;
-        const userResult = await client.query(
-            'SELECT id FROM usuarios WHERE tel = $1',
-            [tel]
-        );
+    //Cadastra ou recupera o Usuário validando a Senha
+    let userId;
+    const userResult = await client.query(
+      'SELECT id, senha_hash FROM usuarios WHERE tel = $1',
+      [tel]
+    );
 
-        if ( userResult.rows.length > 0) {
-            userId = userResult.rows[0].id;
-        } else {
-            const newUser = await client.query(
-                'INSERT INTO usuarios (nome,tel) VALUES ($1, $2) RETURNING id',
-                [nome,tel]
-            );
-            userId = newUser.rows[0].id;
+    if (userResult.rows.length > 0) {
+      const user = userResult.rows[0];
+
+      if (user.senha_hash) {
+        const senhaValida = await bcrypt.compare(senha, user.senha_hash);
+        if (!senhaValida) {
+          await client.query('ROLLBACK');
+          client.release();
+          return res.status(401).json({ error: 'Senha incorreta para o número de telefone informado.' });
         }
+      } else {
+        
+        const salt = await bcrypt.genSalt(10);
+        const novaSenhaHash = await bcrypt.hash(senha, salt);
+        await client.query('UPDATE usuarios SET senha_hash = $1 WHERE id = $2', [novaSenhaHash, user.id]);
+      }
+
+      userId = user.id;
+
+    } else {
+      
+      const salt = await bcrypt.genSalt(10);
+      const senhaHash = await bcrypt.hash(senha, salt);
+
+      const newUser = await client.query(
+        'INSERT INTO usuarios (nome, tel, senha_hash) VALUES ($1, $2, $3) RETURNING id',
+        [nome, tel, senhaHash]
+      );
+      userId = newUser.rows[0].id;
+    }
 
         await client.query(
             `INSERT INTO usuario_end (id_usuario, id_bairro, rua, numero, complemento, cep)
