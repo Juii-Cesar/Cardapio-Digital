@@ -4,6 +4,7 @@ import logoImg from '../assets/logo.png';
 import AdminPedidos from '../components/AdminPedidos';
 import AdminProdutos from '../components/AdminProdutos';
 import AdminCategorias from '../components/AdminCategorias';
+import AdminPromocoes from '../components/AdminPromocoes';
 
 export default function AdminDashboard() {
   const [abaAtual, setAbaAtual] = useState('taxas');
@@ -60,6 +61,17 @@ export default function AdminDashboard() {
           >
             Cardápio / Produtos
           </button>
+
+          <button 
+            onClick={() => setAbaAtual('promocoes')}
+            className={`text-left px-4 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
+              abaAtual === 'promocoes' 
+                ? 'bg-shaday-red text-white shadow-md' 
+                : 'text-shaday-muted hover:bg-white/5 hover:text-white'
+            }`}
+          >
+            Combos & Promoções
+          </button>
         </nav>
       </aside>
 
@@ -71,6 +83,8 @@ export default function AdminDashboard() {
         {abaAtual === 'produtos' && <AdminProdutos />}
 
         {abaAtual === 'categorias' && <AdminCategorias />}
+
+        {abaAtual === 'promocoes' && <AdminPromocoes />}
       </main>
       
     </div>
