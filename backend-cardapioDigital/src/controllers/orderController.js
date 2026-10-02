@@ -1,184 +1,232 @@
 const db = require('../config/db');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 //cria pedidoo completo com usuario, endereço e itens do carrinho
-const createOrder= async(req, res)=>{
-    const{
-        cliente: {nome, tel, senha, rua, numero, complemento, id_bairro, cep},
-        itens, //recebe array com id produto ou da promo, qtd, obs
-        observacao_geral
-    }= req.body;
+const createOrder = async (req, res) => {
+  const authHeader = req.headers["authorization"];
+  let userIdFromToken = null;
 
+  if (authHeader) {
+    try {
+      const token = authHeader.split(" ")[1];
+      if (token) {
+        const secret = process.env.JWT_SECRET;
+        const decoded = jwt.verify(token, secret);
+        userIdFromToken = decoded.id;
+      }
+    } catch (err) {
+      console.error(
+        "Token enviado no pedido é inválido ou expirou:",
+        err.message,
+      );
+    }
+  }
 
-    //validaçao de entrada
-    if (!nome || !tel || !senha || !rua || !numero || !id_bairro){
-        return res.status(400).json({error: 'Dados do cliente (incluindo senha), endereço e bairro são obrigatorios.'});
+  const cliente = req.body.cliente || {};
+  const { nome, tel, senha, rua, numero, complemento, id_bairro, cep } =
+    cliente;
+  const { itens, observacao_geral } = req.body;
+
+  // Validação de entrada
+  if (!nome || !rua || !numero || !id_bairro) {
+    return res
+      .status(400)
+      .json({ error: "Dados do cliente, endereço e bairro são obrigatórios." });
+  }
+
+  if (!userIdFromToken && (!tel || !senha)) {
+    return res
+      .status(400)
+      .json({
+        error:
+          "Telefone e senha são obrigatórios para finalizar o pedido sem login prévio.",
+      });
+  }
+
+  if (!itens || !Array.isArray(itens) || itens.length === 0) {
+    return res
+      .status(400)
+      .json({ error: "O pedido deve conter pelo menos um item." });
+  }
+
+  const client = await db.connect();
+
+  try {
+    await client.query("BEGIN");
+
+    const neighborhoodResult = await client.query(
+      "SELECT taxa FROM taxas_entrega WHERE id = $1 AND ativo = true",
+      [id_bairro],
+    );
+
+    if (neighborhoodResult.rows.length === 0) {
+      await client.query("ROLLBACK");
+      client.release();
+      return res
+        .status(400)
+        .json({ error: "Bairro selecionado é invalido ou não está ativo" });
     }
 
-    if (!itens || !Array.isArray(itens) || itens.length === 0) {
-        return res.status(400).json({error: 'o pedido deve conter pelo menos um item.'});
-    }
-
-    const client = await db.connect();
-
-    try{
-        await client.query('BEGIN');
-
-        const neighborhoodResult = await client.query(
-            'SELECT taxa FROM taxas_entrega WHERE id = $1 AND ativo = true',
-            [id_bairro]
-        );
-
-        if(neighborhoodResult.rows.length === 0){
-            await client.query('ROLLBACK');
-            client.release();
-            return res.status(400).json({ error: 'Bairro selecionado é invalido ou não está ativo'});
-        }
-
-        const taxaEntrega = parseFloat(neighborhoodResult.rows[0].taxa);
+    const taxaEntrega = parseFloat(neighborhoodResult.rows[0].taxa);
 
     //Cadastra ou recupera o Usuário validando a Senha
     let userId;
-    const userResult = await client.query(
-      'SELECT id, senha_hash FROM usuarios WHERE tel = $1',
-      [tel]
+
+    if (userIdFromToken) {
+      userId = userIdFromToken;
+    } else {
+      const userResult = await client.query(
+        "SELECT id, senha_hash FROM usuarios WHERE tel = $1",
+        [tel],
+      );
+
+      if (userResult.rows.length > 0) {
+        const user = userResult.rows[0];
+
+        if (user.senha_hash) {
+          const senhaValida = await bcrypt.compare(senha, user.senha_hash);
+          if (!senhaValida) {
+            await client.query("ROLLBACK");
+            client.release();
+            return res
+              .status(401)
+              .json({
+                error: "Senha incorreta para o número de telefone informado.",
+              });
+          }
+        } else {
+          const salt = await bcrypt.genSalt(10);
+          const novaSenhaHash = await bcrypt.hash(senha, salt);
+          await client.query(
+            "UPDATE usuarios SET senha_hash = $1 WHERE id = $2",
+            [novaSenhaHash, user.id],
+          );
+        }
+
+        userId = user.id;
+      } else {
+        const salt = await bcrypt.genSalt(10);
+        const senhaHash = await bcrypt.hash(senha, salt);
+
+        const newUser = await client.query(
+          "INSERT INTO usuarios (nome, tel, senha_hash) VALUES ($1, $2, $3) RETURNING id",
+          [nome, tel, senhaHash],
+        );
+        userId = newUser.rows[0].id;
+      }
+    }
+
+    await client.query(
+      `INSERT INTO usuario_end (id_usuario, id_bairro, rua, numero, complemento, cep)
+            VALUES ($1, $2, $3, $4, $5, $6)`,
+      [userId, id_bairro, rua, numero, complemento || null, cep || null],
     );
 
-    if (userResult.rows.length > 0) {
-      const user = userResult.rows[0];
+    let subtotal = 0;
+    const itensProcessados = [];
 
-      if (user.senha_hash) {
-        const senhaValida = await bcrypt.compare(senha, user.senha_hash);
-        if (!senhaValida) {
-          await client.query('ROLLBACK');
+    for (const item of itens) {
+      const qtd = parseInt(item.quantidade) || 1;
+      let precoUnitario = 0;
+
+      if (item.id_produto) {
+        const prodResult = await client.query(
+          "SELECT preco, ativo FROM produtos WHERE id = $1",
+          [item.id_produto],
+        );
+
+        if (prodResult.rows.length === 0 || !prodResult.rows[0].ativo) {
+          await client.query("ROLLBACK");
           client.release();
-          return res.status(401).json({ error: 'Senha incorreta para o número de telefone informado.' });
+          return res
+            .status(400)
+            .json({ error: "Produto selecionado não está disponivel." });
         }
+
+        precoUnitario = parseFloat(prodResult.rows[0].preco);
+      } else if (item.id_promo) {
+        const promoResult = await client.query(
+          "SELECT preco,ativo FROM promo WHERE id=$1",
+          [item.id_promo],
+        );
+        if (promoResult.rows.length === 0 || !promoResult.rows[0].ativo) {
+          await client.query("ROLLBACK");
+          client.release();
+          return res
+            .status(400)
+            .json({ error: "combo/promoção nao esta disponivel." });
+        }
+
+        precoUnitario = parseFloat(promoResult.rows[0].preco);
       } else {
-        
-        const salt = await bcrypt.genSalt(10);
-        const novaSenhaHash = await bcrypt.hash(senha, salt);
-        await client.query('UPDATE usuarios SET senha_hash = $1 WHERE id = $2', [novaSenhaHash, user.id]);
+        await client.query("ROLLBACK");
+        client.release();
+        return res
+          .status(400)
+          .json({
+            error: "Item do pedido deve conter um id_produto ou id_promo",
+          });
       }
 
-      userId = user.id;
+      subtotal += qtd * precoUnitario;
 
-    } else {
-      
-      const salt = await bcrypt.genSalt(10);
-      const senhaHash = await bcrypt.hash(senha, salt);
-
-      const newUser = await client.query(
-        'INSERT INTO usuarios (nome, tel, senha_hash) VALUES ($1, $2, $3) RETURNING id',
-        [nome, tel, senhaHash]
-      );
-      userId = newUser.rows[0].id;
+      itensProcessados.push({
+        id_produto: item.id_produto || null,
+        id_promo: item.id_promo || null,
+        quantidade: qtd,
+        observacao: item.observacao || null,
+        preco_unitario: precoUnitario, // Preço capturado com segurança do banco
+      });
     }
+    const totalGeral = subtotal + taxaEntrega;
 
-        await client.query(
-            `INSERT INTO usuario_end (id_usuario, id_bairro, rua, numero, complemento, cep)
-            VALUES ($1, $2, $3, $4, $5, $6)`,
-            [userId, id_bairro, rua, numero, complemento || null, cep || null]
-        );
-
-        let subtotal = 0;
-        const itensProcessados = [];
-
-        for (const item of itens){
-            const qtd = parseInt(item.quantidade) || 1;
-            let precoUnitario = 0;
-
-            if(item.id_produto){
-                const prodResult = await client.query(
-                    'SELECT preco, ativo FROM produtos WHERE id = $1',
-                    [item.id_produto]
-                );
-
-                if (prodResult.rows.length === 0 || !prodResult.rows[0].ativo){
-                    await client.query('ROLLBACK');
-                    client.release();
-                    return res.status(400).json({error: 'Produto selecionado não está disponivel.'});
-                }
-
-                precoUnitario = parseFloat(prodResult.rows[0].preco);
-            } else if (item.id_promo){
-                const promoResult= await client.query(
-                    'SELECT preco,ativo FROM promo WHERE id=$1',
-                    [item.id_promo]
-                );
-                if(promoResult.rows.length === 0 || !promoResult.rows[0].ativo){
-                    await client.query('ROLLBACK');
-                    client.release();
-                    return res.status(400).json({error:'combo/promoção nao esta disponivel.'});
-                }
-
-                precoUnitario = parseFloat(promoResult.rows[0].preco);
-            } else{
-                await client.query('ROLLBACK');
-                client.release();
-                return res.status(400).json({error: 'Item do pedido deve conter um id_produto ou id_promo'});
-            }
-
-            subtotal +=qtd * precoUnitario;
-
-            itensProcessados.push({
-              id_produto: item.id_produto || null,
-              id_promo: item.id_promo || null,
-              quantidade: qtd,
-              observacao: item.observacao || null,
-              preco_unitario: precoUnitario, // Preço capturado com segurança do banco
-            });
-
-        }
-        const totalGeral = subtotal + taxaEntrega;
-
-        const orderResult = await client.query(
-            `INSERT INTO pedidos (id_usuario, id_bairro, status, taxa_entrega_aplicada, total, observacao)
+    const orderResult = await client.query(
+      `INSERT INTO pedidos (id_usuario, id_bairro, status, taxa_entrega_aplicada, total, observacao)
             VALUES ($1, $2, 'Pendente', $3, $4, $5) RETURNING *`,
-            [userId, id_bairro, taxaEntrega, totalGeral, observacao_geral || null]
-        );
+      [userId, id_bairro, taxaEntrega, totalGeral, observacao_geral || null],
+    );
 
-        const newOrder = orderResult.rows[0];
+    const newOrder = orderResult.rows[0];
 
-        for(const item of itensProcessados){
-            await client.query(
-                `INSERT INTO itens_pedidos (id_pedido, id_produto, id_promo, quantidade, observacao, preco_unitario)
+    for (const item of itensProcessados) {
+      await client.query(
+        `INSERT INTO itens_pedidos (id_pedido, id_produto, id_promo, quantidade, observacao, preco_unitario)
                 VALUES ($1, $2, $3, $4, $5, $6)`,
-                [
-                    newOrder.id,
-                    item.id_produto,
-                    item.id_promo,
-                    item.quantidade,
-                    item.observacao,
-                    item.preco_unitario
-                ]
-            );
-        }
-
-        await client.query('COMMIT');
-        client.release();
-        
-        return res.status(201).json({
-            message: 'Pedido Realizado com sucesso!',
-            order: newOrder
-        });
-        
-    } catch (error) {
-        try {
-            await client.query('ROLLBACK');
-            client.release();
-        } catch (rollbackErr) {
-            console.error('Erro ao fazer rollback:', rollbackErr);
-        }
-
-        console.error(' ERRO DETALHADO NA TRANSAÇÃO:', error);
-
-        return res.status(500).json({
-            error: 'Erro interno ao processar pedido',
-            mensagem: error.message,
-            detalhes: error.stack
-        });
+        [
+          newOrder.id,
+          item.id_produto,
+          item.id_promo,
+          item.quantidade,
+          item.observacao,
+          item.preco_unitario,
+        ],
+      );
     }
+
+    await client.query("COMMIT");
+    client.release();
+
+    return res.status(201).json({
+      message: "Pedido Realizado com sucesso!",
+      order: newOrder,
+    });
+  } catch (error) {
+    try {
+      await client.query("ROLLBACK");
+      client.release();
+    } catch (rollbackErr) {
+      console.error("Erro ao fazer rollback:", rollbackErr);
+    }
+
+    console.error(" ERRO DETALHADO NA TRANSAÇÃO:", error);
+
+    return res.status(500).json({
+      error: "Erro interno ao processar pedido",
+      mensagem: error.message,
+      detalhes: error.stack,
+    });
+  }
 };
 
 //lista pedidos (funçao admin)
