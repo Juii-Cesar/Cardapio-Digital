@@ -6,6 +6,7 @@ const orderController = require('../controllers/orderController');
 
 router.post('/pedidos', orderController.createOrder);
 router.get('/pedidos',verifyAdminToken, orderController.getOrders);
+router.get("/cliente/pedidos", orderController.getClientOrders);
 router.put('/pedidos/:id/status',verifyAdminToken, orderController.updateOrderStatus);
 
 module.exports = router;
