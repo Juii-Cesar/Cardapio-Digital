@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 
 export default function AdminPedidos() {
   const [pedidos, setPedidos] = useState([]);
@@ -41,9 +42,10 @@ export default function AdminPedidos() {
         status: novoStatus
       });
       fetchPedidos(); 
+      toast.success("Status do pedido atualizado!");
     } catch (error) {
       console.error("Erro ao atualizar status:", error);
-      alert("Erro ao mover o pedido. Verifique se o backend está a rodar.");
+      toast.error("Erro ao mover o pedido. Verifique o backend.");
     }
   };
 
@@ -51,7 +53,6 @@ export default function AdminPedidos() {
     let filtrados = pedidos.filter(p => p.status === statusFiltro);
     let ocultos = 0;
 
-    // LIMITADOR DE CONCLUÍDOS: Evita coluna infinita
     if (statusFiltro === 'Concluido' && filtrados.length > 15) {
       ocultos = filtrados.length - 15;
       filtrados = filtrados.slice(0, 15);
@@ -63,7 +64,7 @@ export default function AdminPedidos() {
         <div className="flex items-center justify-between p-2 mb-1 border-b border-white/5">
           <h3 className="text-white font-bold text-sm">{titulo}</h3>
           <span className="bg-white/10 text-white text-xs px-2.5 py-1 rounded-full font-bold">
-            {pedidos.filter(p => p.status === statusFiltro).length} {/* Mostra o total real na bolinha */}
+            {pedidos.filter(p => p.status === statusFiltro).length}
           </span>
         </div>
         
@@ -81,11 +82,8 @@ export default function AdminPedidos() {
                       <span className="text-shaday-red font-black text-xs tracking-wider">
                         #{String(pedido.id_pedido).substring(0,6).toUpperCase()}
                       </span>
-                      {/* AUMENTADO: Nome */}
                       <h4 className="text-white font-bold text-base mt-1">{pedido.cliente_nome}</h4>
-                      {/* AUMENTADO: Bairro */}
                       <p className="text-shaday-muted text-sm mt-0.5">{pedido.nome_bairro}</p>
-                      {/* AUMENTADO: Telefone */}
                       <p className="text-white/60 text-xs mt-1 font-mono tracking-wide">{pedido.cliente_tel}</p>
                    </div>
                    <span className="text-shaday-muted text-[10px] bg-black/30 px-2 py-1 rounded shrink-0 ml-2">
@@ -96,11 +94,9 @@ export default function AdminPedidos() {
                 <div className="flex flex-col gap-2 py-1">
                    {pedido.itens?.map((item, idx) => (
                      <div key={idx} className="leading-relaxed">
-                       {/* AUMENTADO: Itens */}
                        <span className="text-white/50 font-bold text-sm">{item.quantidade}x </span>
                        <span className="text-white/90 text-sm font-medium">{item.produto_nome || item.promo_nome}</span>
                        
-                       {/* AUMENTADO E DESTACADO: Observação do item (Ex: Sem tomate) */}
                        {item.observacao && (
                          <p className="text-shaday-red font-medium text-xs pl-5 mt-0.5 italic bg-shaday-red/5 p-1 rounded inline-block w-full">
                            ↳ {item.observacao}
@@ -109,7 +105,6 @@ export default function AdminPedidos() {
                      </div>
                    ))}
                    
-                   {/* AUMENTADO: Observação Geral */}
                    {pedido.observacao_geral && (
                      <div className="mt-2 p-3 bg-black/40 rounded-lg text-sm text-white/90 italic border-l-2 border-shaday-red">
                        "{pedido.observacao_geral}"
@@ -134,7 +129,6 @@ export default function AdminPedidos() {
               </div>
             ))}
             
-            {/* Aviso de pedidos ocultos para a coluna de Concluídos */}
             {ocultos > 0 && (
               <div className="text-center py-2 mt-1">
                 <span className="text-[10px] text-white/30 uppercase tracking-widest font-bold">

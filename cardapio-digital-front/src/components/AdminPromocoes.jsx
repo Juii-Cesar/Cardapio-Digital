@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 
 export default function AdminPromocoes() {
   const [promocoes, setPromocoes] = useState([]);
   const [produtosDisponiveis, setProdutosDisponiveis] = useState([]);
   const [loading, setLoading] = useState(true);
-
   const [nome, setNome] = useState('');
   const [descricao, setDescricao] = useState('');
   const [preco, setPreco] = useState('');
@@ -13,11 +13,7 @@ export default function AdminPromocoes() {
   const [produtosSelecionados, setProdutosSelecionados] = useState([]);
   const [editandoId, setEditandoId] = useState(null);
 
-  useEffect(() => {
-    carregarDados();
-  }, []);
-
-  const carregarDados = async () => {
+  const carregarDados = useCallback(async () => {
     try {
       const [resPromos, resProdutos] = await Promise.all([
         axios.get('http://localhost:3000/api/promo').catch(() => ({ data: [] })),
@@ -27,10 +23,16 @@ export default function AdminPromocoes() {
       setProdutosDisponiveis(resProdutos.data);
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
+      toast.error("Erro ao carregar os dados.");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    // eslint-disable-next-line
+    carregarDados();
+  }, [carregarDados]);
 
   const handleCheckbox = (produtoId) => {
     setProdutosSelecionados(prev => 
@@ -38,6 +40,22 @@ export default function AdminPromocoes() {
         ? prev.filter(id => id !== produtoId) 
         : [...prev, produtoId]
     );
+  };
+
+  const iniciarEdicao = (promo) => {
+    setEditandoId(promo.id);
+    setNome(promo.nome);
+    setDescricao(promo.descricao || '');
+    setPreco(String(promo.preco).replace('.', ','));
+    setImagem(null);
+    
+    if (promo.produto_inclusos && promo.produto_inclusos.length > 0) {
+      setProdutosSelecionados(promo.produto_inclusos.map(item => item.id_produto));
+    } else {
+      setProdutosSelecionados([]);
+    }
+    
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const cancelarEdicao = () => {
@@ -51,6 +69,20 @@ export default function AdminPromocoes() {
     if (fileInput) fileInput.value = '';
   };
 
+  const handleExcluir = async (id, nomePromo) => {
+    const confirmar = window.confirm(`Tem a certeza que deseja eliminar o combo "${nomePromo}"?`);
+    if (!confirmar) return;
+
+    try {
+      await axios.delete(`http://localhost:3000/api/promo/${id}`);
+      carregarDados(); 
+      toast.success("Combo removido!");
+    } catch (error) {
+      console.error("Erro ao remover promoção:", error);
+      toast.error("Erro ao remover o combo.");
+    }
+  };
+
   const handleSalvar = async (e) => {
     e.preventDefault();
     if (!nome || !preco) return;
@@ -62,7 +94,11 @@ export default function AdminPromocoes() {
       formData.append('preco', Number(String(preco).replace(',', '.')));
       
       if (produtosSelecionados.length > 0) {
-        formData.append('produtos_ids', JSON.stringify(produtosSelecionados));
+        const itensFormatados = produtosSelecionados.map(id => ({
+          id_produto: id,
+          quantidade: 1
+        }));
+        formData.append('itens', JSON.stringify(itensFormatados));
       }
 
       if (imagem) formData.append('imagem', imagem);
@@ -71,15 +107,17 @@ export default function AdminPromocoes() {
 
       if (editandoId) {
         await axios.put(`http://localhost:3000/api/promo/${editandoId}`, formData, config);
+        toast.success("Combo atualizado!");
       } else {
         await axios.post('http://localhost:3000/api/promo', formData, config);
+        toast.success("Combo criado com sucesso!");
       }
       
       cancelarEdicao();
       carregarDados();
     } catch (error) {
       console.error("Erro ao salvar promoção:", error);
-      alert("Erro ao salvar. Verifique se o backend está pronto.");
+      toast.error("Erro ao salvar. Verifique se o backend está pronto.");
     }
   };
 
@@ -117,7 +155,6 @@ export default function AdminPromocoes() {
               </div>
             </div>
 
-            {/* SELEÇÃO DE PRODUTOS ESTILIZADA */}
             <div className="flex-1 bg-[#121212] border border-white/10 rounded-xl p-4 flex flex-col h-56">
               <label className="block text-sm text-shaday-muted mb-3 border-b border-white/5 pb-2 shrink-0">
                 Selecione os Produtos deste Combo
@@ -135,7 +172,6 @@ export default function AdminPromocoes() {
                           : 'bg-white/[0.02] border-white/5 hover:border-white/10 hover:bg-white/5'
                       }`}
                     >
-                      {/* Checkbox customizado */}
                       <div className={`w-5 h-5 rounded flex items-center justify-center border transition-colors ${
                         isSelected ? 'bg-shaday-red border-shaday-red' : 'border-white/20 bg-black/20'
                       }`}>
@@ -145,6 +181,12 @@ export default function AdminPromocoes() {
                           </svg>
                         )}
                       </div>
+                      <input 
+                        type="checkbox" 
+                        checked={isSelected}
+                        onChange={() => handleCheckbox(produto.id)} 
+                        className="hidden" 
+                      />
                       
                       <span className={`text-sm font-medium transition-colors ${isSelected ? 'text-white' : 'text-white/80'}`}>
                         {produto.nome}
@@ -194,21 +236,42 @@ export default function AdminPromocoes() {
                 
                 <div className="flex-1">
                   <h3 className="font-bold text-white flex items-center gap-2">
-                    ⭐ {promo.nome}
+                    {promo.nome}
                   </h3>
-                  <p className="text-shaday-muted text-xs line-clamp-1 mt-1">{promo.descricao || promo.descriacao}</p>
+                  <p className="text-shaday-muted text-xs line-clamp-1 mt-1">{promo.descricao}</p>
+                  
+                  {promo.produto_inclusos && promo.produto_inclusos.length > 0 && (
+                    <p className="text-white/40 text-[10px] mt-1 italic">
+                      Inclui: {promo.produto_inclusos.map(p => p.produto_nome).join(' + ')}
+                    </p>
+                  )}
                 </div>
                 
                 <div className="font-bold text-shaday-red mr-4">
                   R$ {Number(promo.preco).toFixed(2).replace('.', ',')}
                 </div>
                 
-                <button 
-                  onClick={() => alert("A aguardar o backend do Júlio para a rota PUT!")}
-                  className="text-xs px-4 py-2 rounded-lg bg-white/5 text-white hover:bg-white/10 transition-colors font-medium border border-white/10"
-                >
-                  Editar
-                </button>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => iniciarEdicao(promo)}
+                    className="text-xs px-3 py-1.5 rounded bg-white/5 text-white hover:bg-white/10 transition-colors font-medium border border-white/10"
+                  >
+                    Editar
+                  </button>
+                  <button 
+                    onClick={() => handleExcluir(promo.id, promo.nome)}
+                    className="p-1.5 bg-white/5 hover:bg-shaday-red text-white/70 hover:text-white rounded transition-colors border border-white/10 flex items-center justify-center"
+                    title="Eliminar Promoção"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      <line x1="10" y1="11" x2="10" y2="17"></line>
+                      <line x1="14" y1="11" x2="14" y2="17"></line>
+                    </svg>
+                  </button>
+                </div>
+
               </div>
             ))
           )}

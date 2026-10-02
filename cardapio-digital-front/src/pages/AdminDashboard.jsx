@@ -5,9 +5,10 @@ import AdminPedidos from '../components/AdminPedidos';
 import AdminProdutos from '../components/AdminProdutos';
 import AdminCategorias from '../components/AdminCategorias';
 import AdminPromocoes from '../components/AdminPromocoes';
+import AdminResumo from '../components/AdminResumo';
 
 export default function AdminDashboard() {
-  const [abaAtual, setAbaAtual] = useState('taxas');
+  const [abaAtual, setAbaAtual] = useState('resumo');
 
   return (
     <div className="min-h-screen bg-shaday-bg text-white font-sans flex flex-col md:flex-row">
@@ -18,6 +19,17 @@ export default function AdminDashboard() {
         </div>
         
         <nav className="flex flex-row md:flex-col gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden pb-2 md:pb-0">
+          <button 
+            onClick={() => setAbaAtual('resumo')}
+            className={`text-left px-4 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
+              abaAtual === 'resumo' 
+                ? 'bg-shaday-red text-white shadow-md' 
+                : 'text-shaday-muted hover:bg-white/5 hover:text-white'
+            }`}
+          >
+            Visão Geral
+          </button>
+
           <button 
             onClick={() => setAbaAtual('pedidos')}
             className={`text-left px-4 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
@@ -85,6 +97,8 @@ export default function AdminDashboard() {
         {abaAtual === 'categorias' && <AdminCategorias />}
 
         {abaAtual === 'promocoes' && <AdminPromocoes />}
+        
+        {abaAtual === 'resumo' && <AdminResumo />}
       </main>
       
     </div>

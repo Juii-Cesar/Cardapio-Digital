@@ -3,6 +3,7 @@ import axios from 'axios';
 import logoImg from '../assets/logo.png'; 
 import ProdutoModal from '../components/ProdutoModal';
 import CartBar from '../components/CartBar';
+import MeusPedidosModal from '../components/MeusPedidosModal';
 
 export default function ClientHome() {
   const [categorias, setCategorias] = useState([]);
@@ -11,11 +12,11 @@ export default function ClientHome() {
   const [promos, setPromos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [produtoSelecionado, setProdutoSelecionado] = useState(null);
+  const [showMeusPedidos, setShowMeusPedidos] = useState(false);
 
   useEffect(() => {
     async function fetchData() {
       try {
-
         const [resCategorias, resProdutos, resPromos] = await Promise.all([
           axios.get('http://localhost:3000/api/categorias'),
           axios.get('http://localhost:3000/api/produtos'),
@@ -28,7 +29,7 @@ export default function ClientHome() {
         let categoriasAtuais = resCategorias.data;
 
         if (promosAtivas.length > 0) {
-          categoriasAtuais = [{ id: 'promocoes', nome: '⭐ Promoções' }, ...categoriasAtuais];
+          categoriasAtuais = [{ id: 'promocoes', nome: 'Promoções' }, ...categoriasAtuais];
         }
 
         setCategorias(categoriasAtuais);
@@ -54,11 +55,22 @@ export default function ClientHome() {
 
   return (
     <div className="min-h-screen bg-shaday-bg text-shaday-text font-sans mx-auto max-w-md shadow-2xl relative">
+      
       <header className="sticky top-0 z-50 bg-shaday-bg border-b border-shaday-card px-4 py-3 flex items-center justify-between">
         <img src={logoImg} alt="Logo Sushi Shaday" className="h-12 w-auto object-contain" />
-        <button className="text-sm font-medium text-shaday-red border border-shaday-red px-4 py-1.5 rounded-full hover:bg-shaday-red hover:text-white transition-colors">
-          Entrar
-        </button>
+        
+        <div className="flex gap-2 items-center">
+          <button 
+            onClick={() => setShowMeusPedidos(true)}
+            className="text-xs font-bold text-shaday-red bg-shaday-red/10 px-3 py-1.5 rounded-full border border-shaday-red/20 hover:bg-shaday-red hover:text-white transition-colors flex items-center gap-1"
+          >
+            Pedidos
+          </button>
+          
+          <button className="text-sm font-medium text-shaday-red border border-shaday-red px-4 py-1.5 rounded-full hover:bg-shaday-red hover:text-white transition-colors">
+            Entrar
+          </button>
+        </div>
       </header>
 
       <nav className="sticky top-[72px] z-40 bg-shaday-bg/95 backdrop-blur-sm border-b border-shaday-card shadow-sm">
@@ -136,6 +148,11 @@ export default function ClientHome() {
           onClose={() => setProdutoSelecionado(null)} 
         />
       )}
+      
+      {showMeusPedidos && (
+        <MeusPedidosModal onClose={() => setShowMeusPedidos(false)} />
+      )}
+      
       <CartBar />
     </div>
   );

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 
 export default function AdminProdutos() {
   const [produtos, setProdutos] = useState([]);
@@ -103,10 +104,11 @@ export default function AdminProdutos() {
       }
       
       cancelarEdicao(); 
-      atualizarLista(); 
+      atualizarLista();
+      toast.success("Salvo com sucesso!");
     } catch (error) {
-      console.error("Erro ao salvar produto:", error);
-      alert("Erro ao salvar. Verifique se o servidor está a rodar e a rota existe.");
+      console.error("Erro ao salvar:", error);
+      toast.error("Erro ao salvar. Verifique se o servidor está a rodar.");
     }
   };
 
@@ -116,10 +118,11 @@ export default function AdminProdutos() {
 
     try {
       await axios.delete(`http://localhost:3000/api/produtos/${id}`);
-      atualizarLista(); 
+      atualizarLista();
+      toast.success("Eliminado com sucesso!");
     } catch (error) {
-      console.error("Erro ao eliminar produto:", error);
-      alert("Erro ao eliminar. Verifique se o Júlio já criou a rota DELETE no backend.");
+      console.error("Erro ao eliminar:", error);
+      toast.error("Erro ao eliminar item.");
     }
   };
 

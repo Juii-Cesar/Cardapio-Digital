@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useCart } from '../contexts/CartContext';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 export default function Checkout() {
   const { cartItems, clearCart } = useCart();
@@ -33,9 +34,8 @@ export default function Checkout() {
     setTaxaEntrega(bairro ? Number(bairro.taxa) : 0);
   };
 
-  // Função para formatar o telefone (Mascara)
   const handlePhoneChange = (e) => {
-    let v = e.target.value.replace(/\D/g, ''); // Remove letras/símbolos
+    let v = e.target.value.replace(/\D/g, '');
     if (v.length > 11) v = v.slice(0, 11);
     
     if (v.length > 2) v = `(${v.slice(0, 2)}) ${v.slice(2)}`;
@@ -49,25 +49,23 @@ export default function Checkout() {
 
   const handleAvançarParaPagamento = () => {
     if (!bairroSelecionado || !rua || !numero) {
-      alert("Por favor, preencha o bairro, rua e número para entrega.");
+      toast.error("Por favor, preencha o bairro, rua e número para entrega.");
       return;
     }
     setShowLoginModal(true);
   };
 
   const handleFinalizarPedido = async () => {
-    // Pega apenas os números para validar o tamanho real
     const telLimpo = telefoneCliente.replace(/\D/g, '');
     
     if (!nomeCliente || telLimpo.length < 10) {
-      alert("Por favor, insira um nome e um número de WhatsApp válido!");
+      toast.error("Por favor, insira um nome e um número de WhatsApp válido!");
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      // Diferencia dinamicamente se o item é produto ou promoção para o backend
       const itensFormatados = cartItems.map(item => {
         const payloadItem = {
           quantidade: item.quantidade,
@@ -86,11 +84,11 @@ export default function Checkout() {
       const payload = {
         cliente: {
           nome: nomeCliente,
-          tel: telLimpo, // Envia o número limpo para a BD
+          tel: telLimpo,
           rua,
           numero,
           complemento: complemento || '',
-          id_bairro: Number(bairroSelecionado), // Garante que é número
+          id_bairro: Number(bairroSelecionado),
           cep: ''
         },
         itens: itensFormatados,
@@ -98,16 +96,15 @@ export default function Checkout() {
       };
 
       await axios.post('http://localhost:3000/api/pedidos', payload);
+      toast.success("Pedido realizado com sucesso!");
       
-      alert("Pedido realizado com sucesso! Acompanhe no seu WhatsApp.");
-
       if (clearCart) clearCart();
       setShowLoginModal(false);
       navigate('/'); 
       
     } catch (error) {
       console.error("Erro ao finalizar pedido:", error);
-      alert("Erro ao enviar pedido. Verifique se o servidor está ativo.");
+      toast.error("Erro ao enviar pedido. Verifique se o servidor está ativo.");
     } finally {
       setIsSubmitting(false);
     }
