@@ -10,6 +10,7 @@ const deliveryRoutes = require('./routes/deliveryRoutes');
 const orderRoutes =  require('./routes/orderRoutes');
 const promoRoutes = require('./routes/promoRoutes');
 const authRoutes = require('./routes/authRoutes');
+const adminAuthRoutes = require('./routes/adminAuthRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -23,6 +24,7 @@ app.use('/api',deliveryRoutes);
 app.use('/api', orderRoutes);
 app.use('/api', promoRoutes);
 app.use('/api',authRoutes);
+app.use('/api', adminAuthRoutes);
 
 //rota de teste
 app.get('/', (req,res)=>{
