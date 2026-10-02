@@ -1,83 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid 
 } from 'recharts';
 
-export default function AdminResumo() {
-  const [loading, setLoading] = useState(true);
-  const [metricas, setMetricas] = useState({
-    faturamento: 0,
-    totalPedidos: 0,
-    ticketMedio: 0,
-  });
-  const [dadosGrafico, setDadosGrafico] = useState([]);
-  const [topProdutos, setTopProdutos] = useState([]);
-
-  useEffect(() => {
-    const carregarEstatisticas = async () => {
-      try {
-        const response = await axios.get('http://localhost:3000/api/pedidos');
-        const pedidos = response.data;
-        const faturamentoTotal = pedidos.reduce((acc, p) => acc + Number(p.total), 0);
-        const qtdPedidos = pedidos.length;
-        const ticketMed = qtdPedidos > 0 ? faturamentoTotal / qtdPedidos : 0;
-
-        setMetricas({
-          faturamento: faturamentoTotal,
-          totalPedidos: qtdPedidos,
-          ticketMedio: ticketMed
-        });
-
-        const ultimos7Dias = {};
-        for(let i=6; i>=0; i--) {
-            const d = new Date();
-            d.setDate(d.getDate() - i);
-            const dataFormatada = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-            ultimos7Dias[dataFormatada] = 0;
-        }
-
-        pedidos.forEach(p => {
-            const dataPedido = new Date(p.criado_em).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-            if(ultimos7Dias[dataPedido] !== undefined) {
-                ultimos7Dias[dataPedido] += Number(p.total);
-            }
-        });
-
-        const formatoGrafico = Object.keys(ultimos7Dias).map(data => ({
-            dia: data,
-            Total: Number(ultimos7Dias[data].toFixed(2))
-        }));
-        setDadosGrafico(formatoGrafico);
-
-        const contagem = {};
-        pedidos.forEach(p => {
-            p.itens?.forEach(item => {
-                const nome = item.produto_nome || item.promo_nome;
-                if(nome) {
-                    contagem[nome] = (contagem[nome] || 0) + Number(item.quantidade);
-                }
-            });
-        });
-
-        const top5 = Object.keys(contagem)
-            .map(nome => ({ nome, quantidade: contagem[nome] }))
-            .sort((a, b) => b.quantidade - a.quantidade)
-            .slice(0, 5);
-        
-        setTopProdutos(top5);
-
-      } catch (error) {
-        console.error("Erro ao carregar estatísticas:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    carregarEstatisticas();
-  }, []);
-
-  const CustomTooltip = ({ active, payload, label }) => {
+const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-[#121212] border border-white/10 p-3 rounded-lg shadow-xl">
@@ -91,19 +18,143 @@ export default function AdminResumo() {
     return null;
   };
 
-  if (loading) return <div className="p-4 text-shaday-muted">Calculando métricas...</div>;
+export default function AdminResumo() {
+  const [loading, setLoading] = useState(true);
+  const [todosPedidos, setTodosPedidos] = useState([]);
+  const [filtroTempo, setFiltroTempo] = useState('7d');
+
+  useEffect(() => {
+    const carregarEstatisticas = async () => {
+      try {
+        const response = await axios.get('http://localhost:3000/api/pedidos');
+        setTodosPedidos(response.data);
+      } catch (error) {
+        console.error("Erro ao carregar estatísticas:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    carregarEstatisticas();
+  }, []);
+
+  const { metricas, dadosGrafico, topProdutos } = useMemo(() => {
+    if (!todosPedidos.length) return { metricas: { faturamento: 0, totalPedidos: 0, ticketMedio: 0 }, dadosGrafico: [], topProdutos: [] };
+
+    const hoje = new Date();
+    const dataLimite = new Date();
+    dataLimite.setHours(0, 0, 0, 0);
+
+    const diasParaGrafico = [];
+
+    if (filtroTempo === '7d') {
+      dataLimite.setDate(hoje.getDate() - 6);
+      for(let i=6; i>=0; i--) {
+        const d = new Date(); d.setDate(hoje.getDate() - i); diasParaGrafico.push(d);
+      }
+    } else if (filtroTempo === '30d') {
+      dataLimite.setDate(hoje.getDate() - 29);
+      for(let i=29; i>=0; i--) {
+        const d = new Date(); d.setDate(hoje.getDate() - i); diasParaGrafico.push(d);
+      }
+    } else if (filtroTempo === 'mes') {
+      dataLimite.setDate(1);
+      const diaAtual = hoje.getDate();
+      for(let i=1; i<=diaAtual; i++) {
+        const d = new Date(hoje.getFullYear(), hoje.getMonth(), i); diasParaGrafico.push(d);
+      }
+    }
+
+    const pedidosFiltrados = todosPedidos.filter(p => new Date(p.criado_em) >= dataLimite);
+    const faturamento = pedidosFiltrados.reduce((acc, p) => acc + Number(p.total), 0);
+    const totalPedidos = pedidosFiltrados.length;
+    const ticketMedio = totalPedidos > 0 ? faturamento / totalPedidos : 0;
+    const mapaDias = {};
+    diasParaGrafico.forEach(d => {
+      const formatada = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+      mapaDias[formatada] = 0;
+    });
+
+    pedidosFiltrados.forEach(p => {
+       const dataPedido = new Date(p.criado_em).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+       if (mapaDias[dataPedido] !== undefined) {
+           mapaDias[dataPedido] += Number(p.total);
+       }
+    });
+
+    const grafico = Object.keys(mapaDias).map(dia => ({ dia, Total: Number(mapaDias[dia].toFixed(2)) }));
+    const contagem = {};
+    pedidosFiltrados.forEach(p => {
+       p.itens?.forEach(item => {
+           const nome = item.produto_nome || item.promo_nome;
+           if(nome) {
+               contagem[nome] = (contagem[nome] || 0) + Number(item.quantidade);
+           }
+       });
+    });
+
+    const top = Object.keys(contagem)
+       .map(nome => ({ nome, quantidade: contagem[nome] }))
+       .sort((a,b) => b.quantidade - a.quantidade)
+       .slice(0, 5);
+
+    return { 
+       metricas: { faturamento, totalPedidos, ticketMedio }, 
+       dadosGrafico: grafico, 
+       topProdutos: top 
+    };
+  }, [todosPedidos, filtroTempo]);
+
+
+  if (loading) return (
+    <div className="flex flex-col gap-6 w-full animate-pulse">
+      <div className="flex justify-between items-end mb-2">
+        <div>
+          <div className="h-8 bg-white/10 w-48 rounded mb-2"></div>
+          <div className="h-4 bg-white/5 w-64 rounded"></div>
+        </div>
+        <div className="h-10 bg-white/10 w-32 rounded-xl"></div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {[1, 2, 3].map(i => <div key={i} className="h-32 bg-shaday-card border border-white/5 rounded-2xl"></div>)}
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="h-[300px] bg-shaday-card border border-white/5 rounded-2xl lg:col-span-2"></div>
+        <div className="h-[300px] bg-shaday-card border border-white/5 rounded-2xl"></div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex flex-col gap-6 w-full animate-fade-in">
-      
-      <div className="mb-2">
-        <h2 className="text-white font-bold text-2xl">Visão Geral</h2>
-        <p className="text-shaday-muted text-sm mt-1">Acompanhe o desempenho do seu negócio.</p>
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-2">
+        <div>
+          <h2 className="text-white font-bold text-2xl">Visão Geral</h2>
+          <p className="text-shaday-muted text-sm mt-1">Acompanhe o desempenho do seu negócio.</p>
+        </div>
+        
+        <div className="bg-[#121212] border border-white/10 rounded-xl px-4 py-2 flex items-center gap-3 w-fit shadow-sm">
+          <span className="text-shaday-muted text-sm font-medium">Período:</span>
+          <div className="relative">
+            <select 
+              value={filtroTempo}
+              onChange={(e) => setFiltroTempo(e.target.value)}
+              className="bg-transparent text-white text-sm font-bold focus:outline-none cursor-pointer appearance-none pr-5 z-10 relative"
+            >
+              <option value="7d" className="bg-[#121212]">Últimos 7 dias</option>
+              <option value="30d" className="bg-[#121212]">Últimos 30 dias</option>
+              <option value="mes" className="bg-[#121212]">Mês Atual</option>
+            </select>
+
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none text-white/50 text-[10px]">
+              ▼
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-shaday-card border border-white/5 rounded-2xl p-6 shadow-sm relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-4 opacity-10 text-4xl"></div>
           <h3 className="text-shaday-muted text-sm font-medium mb-2">Faturamento Total</h3>
           <p className="text-white text-3xl font-black tracking-tight">
             <span className="text-shaday-red text-xl mr-1">R$</span>
@@ -112,7 +163,6 @@ export default function AdminResumo() {
         </div>
         
         <div className="bg-shaday-card border border-white/5 rounded-2xl p-6 shadow-sm relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-4 opacity-10 text-4xl"></div>
           <h3 className="text-shaday-muted text-sm font-medium mb-2">Total de Pedidos</h3>
           <p className="text-white text-3xl font-black tracking-tight">
             {metricas.totalPedidos}
@@ -120,7 +170,6 @@ export default function AdminResumo() {
         </div>
         
         <div className="bg-shaday-card border border-white/5 rounded-2xl p-6 shadow-sm relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-4 opacity-10 text-4xl"></div>
           <h3 className="text-shaday-muted text-sm font-medium mb-2">Ticket Médio</h3>
           <p className="text-white text-3xl font-black tracking-tight">
              <span className="text-shaday-red text-xl mr-1">R$</span>
@@ -131,7 +180,9 @@ export default function AdminResumo() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="bg-shaday-card border border-white/5 rounded-2xl p-6 shadow-sm lg:col-span-2">
-          <h3 className="text-white font-bold text-lg mb-6 border-b border-white/5 pb-3">Faturamento (Últimos 7 Dias)</h3>
+          <h3 className="text-white font-bold text-lg mb-6 border-b border-white/5 pb-3">
+            Faturamento ({filtroTempo === '7d' ? 'Últimos 7 Dias' : filtroTempo === '30d' ? 'Últimos 30 Dias' : 'Mês Atual'})
+          </h3>
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={dadosGrafico} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -146,11 +197,11 @@ export default function AdminResumo() {
         </div>
 
         <div className="bg-shaday-card border border-white/5 rounded-2xl p-6 shadow-sm flex flex-col">
-          <h3 className="text-white font-bold text-lg mb-6 border-b border-white/5 pb-3">Produtos Mais Vendidos</h3>
+          <h3 className="text-white font-bold text-lg mb-6 border-b border-white/5 pb-3">Ranking ({filtroTempo === '7d' ? '7 Dias' : filtroTempo === '30d' ? '30 Dias' : 'Mês'})</h3>
           
           <div className="flex flex-col gap-4 flex-1">
             {topProdutos.length === 0 ? (
-              <p className="text-shaday-muted text-sm text-center mt-10">Ainda não há vendas registadas.</p>
+              <p className="text-shaday-muted text-sm text-center mt-10">Nenhuma venda neste período.</p>
             ) : (
               topProdutos.map((prod, idx) => (
                 <div key={idx} className="flex items-center gap-4 bg-[#121212] p-3 rounded-xl border border-white/5">
@@ -168,6 +219,7 @@ export default function AdminResumo() {
             )}
           </div>
         </div>
+
       </div>
     </div>
   );

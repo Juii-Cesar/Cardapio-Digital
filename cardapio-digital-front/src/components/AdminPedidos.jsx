@@ -22,11 +22,11 @@ export default function AdminPedidos() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line
     fetchPedidos();
     const interval = setInterval(() => { fetchPedidos(); }, 10000);
-    return () => clearInterval(interval); 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    return () => clearInterval(interval);
+  }, [fetchPedidos]);
 
   const handleAvancarStatus = async (pedidoAtual) => {
     const fluxoDeStatus = {
@@ -83,8 +83,21 @@ export default function AdminPedidos() {
                         #{String(pedido.id_pedido).substring(0,6).toUpperCase()}
                       </span>
                       <h4 className="text-white font-bold text-base mt-1">{pedido.cliente_nome}</h4>
-                      <p className="text-shaday-muted text-sm mt-0.5">{pedido.nome_bairro}</p>
-                      <p className="text-white/60 text-xs mt-1 font-mono tracking-wide">{pedido.cliente_tel}</p>
+                      
+                      <div className="text-shaday-muted text-xs mt-1 leading-relaxed bg-black/20 p-2 rounded-lg border border-white/5">
+                        {pedido.rua ? (
+                          <>
+                            <span className="text-white/80">{pedido.rua}, {pedido.numero}</span>
+                            {pedido.complemento && <span className="text-white/60"> ({pedido.complemento})</span>}
+                            <br />
+                            <span className="text-shaday-red/80 font-medium">{pedido.nome_bairro}</span>
+                          </>
+                        ) : (
+                          <span>{pedido.nome_bairro} <span className="text-white/30 italic">(Endereço completo pendente)</span></span>
+                        )}
+                      </div>
+                      
+                      <p className="text-white/60 text-xs mt-2 font-mono tracking-wide">{pedido.cliente_tel}</p>
                    </div>
                    <span className="text-shaday-muted text-[10px] bg-black/30 px-2 py-1 rounded shrink-0 ml-2">
                       {new Date(pedido.criado_em).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}

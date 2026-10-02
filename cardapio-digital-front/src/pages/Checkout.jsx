@@ -3,23 +3,20 @@ import axios from 'axios';
 import { useCart } from '../contexts/CartContext';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import AuthModal from '../components/AuthModal';
 
 export default function Checkout() {
   const { cartItems, clearCart } = useCart();
   const navigate = useNavigate();
-  
   const [bairros, setBairros] = useState([]);
   const [bairroSelecionado, setBairroSelecionado] = useState('');
   const [taxaEntrega, setTaxaEntrega] = useState(0);
-  
   const [rua, setRua] = useState('');
   const [numero, setNumero] = useState('');
   const [complemento, setComplemento] = useState('');
-  
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  const [nomeCliente, setNomeCliente] = useState('');
-  const [telefoneCliente, setTelefoneCliente] = useState('');
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const lojaAberta = true;
 
   useEffect(() => {
     axios.get('http://localhost:3000/api/bairros?apenasAtivo=true')
@@ -34,36 +31,27 @@ export default function Checkout() {
     setTaxaEntrega(bairro ? Number(bairro.taxa) : 0);
   };
 
-  const handlePhoneChange = (e) => {
-    let v = e.target.value.replace(/\D/g, '');
-    if (v.length > 11) v = v.slice(0, 11);
-    
-    if (v.length > 2) v = `(${v.slice(0, 2)}) ${v.slice(2)}`;
-    if (v.length > 10) v = `${v.slice(0, 10)}-${v.slice(10)}`;
-    
-    setTelefoneCliente(v);
-  };
-
   const subtotal = cartItems.reduce((acc, item) => acc + item.precoTotal, 0);
   const totalGeral = subtotal + taxaEntrega;
-
   const handleAvançarParaPagamento = () => {
     if (!bairroSelecionado || !rua || !numero) {
       toast.error("Por favor, preencha o bairro, rua e número para entrega.");
       return;
     }
-    setShowLoginModal(true);
+    
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      toast.error("Faça login ou crie uma conta para finalizar.");
+      setShowAuthModal(true);
+    } else {
+      handleFinalizarPedido();
+    }
   };
 
   const handleFinalizarPedido = async () => {
-    const telLimpo = telefoneCliente.replace(/\D/g, '');
-    
-    if (!nomeCliente || telLimpo.length < 10) {
-      toast.error("Por favor, insira um nome e um número de WhatsApp válido!");
-      return;
-    }
-
     setIsSubmitting(true);
+    const token = localStorage.getItem('token');
 
     try {
       const itensFormatados = cartItems.map(item => {
@@ -77,14 +65,11 @@ export default function Checkout() {
         } else {
           payloadItem.id_produto = item.id;
         }
-
         return payloadItem;
       });
 
       const payload = {
         cliente: {
-          nome: nomeCliente,
-          tel: telLimpo,
           rua,
           numero,
           complemento: complemento || '',
@@ -95,16 +80,24 @@ export default function Checkout() {
         observacao_geral: ''
       };
 
-      await axios.post('http://localhost:3000/api/pedidos', payload);
-      toast.success("Pedido realizado com sucesso!");
+      const config = {
+        headers: { Authorization: `Bearer ${token}` }
+      };
+
+      await axios.post('http://localhost:3000/api/pedidos', payload, config);
       
+      toast.success("Pedido realizado com sucesso! Acompanhe a entrega nos Seus Pedidos.");
       if (clearCart) clearCart();
-      setShowLoginModal(false);
       navigate('/'); 
       
     } catch (error) {
       console.error("Erro ao finalizar pedido:", error);
-      toast.error("Erro ao enviar pedido. Verifique se o servidor está ativo.");
+      toast.error(error.response?.data?.error || "Erro ao enviar pedido. Verifique se a sua sessão expirou.");
+      
+      if (error.response?.status === 401) {
+        localStorage.removeItem('token');
+        setShowAuthModal(true);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -128,6 +121,13 @@ export default function Checkout() {
         <button onClick={() => window.history.back()} className="text-white hover:text-shaday-red transition-colors font-bold text-xl">←</button>
         <h1 className="text-lg font-bold text-white">Finalizar Pedido</h1>
       </header>
+
+      {!lojaAberta && (
+        <div className="bg-shaday-red text-white text-center py-2.5 px-4 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-md">
+          <span className="text-base">⚠️</span>
+          Estamos fechados no momento.
+        </div>
+      )}
 
       <main className="p-4 flex flex-col gap-6">
 
@@ -190,7 +190,6 @@ export default function Checkout() {
             </div>
           </div>
         </section>
-
       </main>
 
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-shaday-card border-t border-white/5 p-4 shadow-[0_-10px_30px_rgba(0,0,0,0.6)]">
@@ -211,60 +210,27 @@ export default function Checkout() {
           </div>
 
           <button 
-            className="w-full bg-shaday-red text-white py-3.5 rounded-xl font-bold text-sm hover:bg-red-700 active:scale-[0.98] transition-all disabled:opacity-50"
-            disabled={!bairroSelecionado || !rua || !numero}
-            onClick={handleAvançarParaPagamento}
+            className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all flex justify-center items-center gap-2 ${
+              lojaAberta 
+                ? 'bg-shaday-red text-white hover:bg-red-700 active:scale-[0.98]' 
+                : 'bg-white/10 text-white/40 cursor-not-allowed'
+            } disabled:opacity-50`}
+            disabled={!lojaAberta || !bairroSelecionado || !rua || !numero || isSubmitting}
+            onClick={() => !lojaAberta ? toast.error("A loja está fechada.") : handleAvançarParaPagamento()}
           >
-            Avançar para Identificação
+            {!lojaAberta ? 'Restaurante Fechado' : isSubmitting ? 'Processando...' : 'Confirmar Pedido'}
           </button>
         </div>
       </div>
 
-      {showLoginModal && (
-        <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-0 sm:p-4 transition-opacity">
-          <div className="bg-shaday-bg w-full max-w-md rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl relative border border-shaday-card animate-slide-up">
-            
-            <button onClick={() => setShowLoginModal(false)} className="absolute top-4 right-4 bg-black/50 text-white w-8 h-8 rounded-full flex items-center justify-center hover:bg-shaday-red transition-colors">
-              ✕
-            </button>
-
-            <h2 className="text-2xl font-bold text-white mb-2 mt-2">Falta pouco!</h2>
-            <p className="text-shaday-muted text-sm mb-6">Como devemos chamá-lo na entrega?</p>
-
-            <div className="flex flex-col gap-4">
-              <div>
-                <label className="block text-sm text-shaday-muted mb-1 ml-1">Seu Nome</label>
-                <input 
-                  type="text" 
-                  value={nomeCliente}
-                  onChange={e => setNomeCliente(e.target.value)}
-                  placeholder="Ex: João Silva" 
-                  className="w-full bg-[#121212] border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-shaday-red" 
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm text-shaday-muted mb-1 ml-1">Telefone (WhatsApp)</label>
-                <input 
-                  type="tel"
-                  maxLength={15}
-                  value={telefoneCliente}
-                  onChange={handlePhoneChange}
-                  placeholder="(00) 00000-0000" 
-                  className="w-full bg-[#121212] border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-shaday-red" 
-                />
-              </div>
-
-              <button 
-                onClick={handleFinalizarPedido}
-                disabled={!nomeCliente || telefoneCliente.replace(/\D/g, '').length < 10 || isSubmitting}
-                className="w-full bg-green-600 text-white py-3.5 rounded-xl font-bold text-base hover:bg-green-700 active:scale-[0.98] transition-all mt-4 disabled:opacity-50 flex justify-center items-center gap-2"
-              >
-                {isSubmitting ? 'A enviar...' : 'Confirmar Pedido'}
-              </button>
-            </div>
-          </div>
-        </div>
+      {showAuthModal && (
+        <AuthModal 
+          onClose={() => setShowAuthModal(false)}
+          onSuccess={() => {
+            setShowAuthModal(false);
+            handleFinalizarPedido();
+          }} 
+        />
       )}
       
     </div>

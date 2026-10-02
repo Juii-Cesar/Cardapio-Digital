@@ -1,5 +1,6 @@
 import { useCart } from '../contexts/CartContext';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 export default function CartBar() {
   const { cartItems } = useCart();
@@ -9,6 +10,7 @@ export default function CartBar() {
 
   const totalItens = cartItems.reduce((acc, item) => acc + item.quantidade, 0);
   const valorTotal = cartItems.reduce((acc, item) => acc + item.precoTotal, 0);
+  const lojaAberta = true; 
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 animate-slide-up bg-shaday-card border-t border-white/5 shadow-[0_-10px_30px_rgba(0,0,0,0.6)]">
@@ -29,10 +31,15 @@ export default function CartBar() {
         </div>
 
         <button 
-          className="bg-shaday-red text-white px-5 py-2.5 rounded-xl font-semibold text-sm hover:bg-red-700 active:scale-[0.96] transition-all shrink-0"
-          onClick={() => navigate('/checkout')} 
+          onClick={() => !lojaAberta ? toast.error("A loja está fechada no momento.") : navigate('/checkout')}
+          disabled={!lojaAberta}
+          className={`px-5 py-2.5 rounded-xl font-semibold text-sm transition-all shrink-0 ${
+            lojaAberta 
+              ? 'bg-shaday-red text-white hover:bg-red-700 active:scale-[0.96]' 
+              : 'bg-white/10 text-white/40 cursor-not-allowed'
+          }`}
         >
-          Ver carrinho
+          {lojaAberta ? 'Ver carrinho' : 'Loja Fechada'}
         </button>
 
       </div>

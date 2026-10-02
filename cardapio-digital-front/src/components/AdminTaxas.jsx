@@ -79,7 +79,21 @@ export default function AdminTaxas() {
     }
   };
 
-  if (loading) return <div className="p-4 text-shaday-muted">A carregar áreas de entrega...</div>;
+  if (loading) return (
+    <div className="flex flex-col gap-6 w-full animate-pulse">
+      <div className="h-32 bg-shaday-card border border-white/5 rounded-2xl"></div>
+      <div className="bg-shaday-card rounded-2xl border border-white/5 overflow-hidden">
+        <div className="p-5 border-b border-white/5">
+          <div className="h-6 bg-white/10 w-48 rounded"></div>
+        </div>
+        <div className="flex flex-col p-4 gap-3">
+          {[1, 2, 3, 4, 5].map(i => (
+            <div key={i} className="h-14 bg-[#121212] border border-white/5 rounded-xl"></div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex flex-col gap-6">

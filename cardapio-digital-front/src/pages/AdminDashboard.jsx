@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AdminTaxas from '../components/AdminTaxas';
 import logoImg from '../assets/logo.png'; 
 import AdminPedidos from '../components/AdminPedidos';
@@ -8,7 +9,24 @@ import AdminPromocoes from '../components/AdminPromocoes';
 import AdminResumo from '../components/AdminResumo';
 
 export default function AdminDashboard() {
+
   const [abaAtual, setAbaAtual] = useState('resumo');
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const token = localStorage.getItem('adminToken');
+    if (!token) {
+      navigate('/admin/login');
+    }
+  }, [navigate]);
+
+  const [lojaAberta, setLojaAberta] = useState(true);
+  const handleToggleLoja = () => {
+  const novoStatus = !lojaAberta;
+  setLojaAberta(novoStatus);
+  // await axios.put('http://localhost:3000/api/loja/status', { aberto: novoStatus })
+  toast.success(novoStatus ? "A loja está ABERTA!" : "A loja está FECHADA!");
+};
 
   return (
     <div className="min-h-screen bg-shaday-bg text-white font-sans flex flex-col md:flex-row">
@@ -19,6 +37,19 @@ export default function AdminDashboard() {
         </div>
         
         <nav className="flex flex-row md:flex-col gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden pb-2 md:pb-0">
+        <div className="mb-6 px-4 py-3 bg-[#121212] rounded-xl border border-white/5 flex items-center justify-between">
+          <span className={`text-xs font-bold flex items-center gap-2 ${lojaAberta ? 'text-green-500' : 'text-shaday-red'}`}>
+            <div className={`w-2 h-2 rounded-full ${lojaAberta ? 'bg-green-500 animate-pulse' : 'bg-shaday-red'}`}></div>
+            {lojaAberta ? 'LOJA ABERTA' : 'LOJA FECHADA'}
+          </span>
+          <button 
+            onClick={handleToggleLoja} 
+            className={`w-10 h-5 rounded-full relative transition-colors ${lojaAberta ? 'bg-green-600' : 'bg-white/10'}`}
+          >
+            <div className={`w-3 h-3 rounded-full bg-white absolute top-1 transition-all ${lojaAberta ? 'left-6' : 'left-1'}`}></div>
+          </button>
+        </div>
+
           <button 
             onClick={() => setAbaAtual('resumo')}
             className={`text-left px-4 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${

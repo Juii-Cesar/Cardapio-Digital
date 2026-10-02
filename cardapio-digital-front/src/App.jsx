@@ -3,6 +3,7 @@ import { Toaster } from 'react-hot-toast';
 import ClientHome from './pages/ClientHome';
 import AdminDashboard from './pages/AdminDashboard';
 import Checkout from './pages/Checkout';
+import AdminLogin from './pages/AdminLogin'; //
 
 function App() {
   return (
@@ -35,6 +36,7 @@ function App() {
         <Route path="/" element={<ClientHome />} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/checkout" element={<Checkout />} />
+        <Route path="/admin/login" element={<AdminLogin />} />
       </Routes>
     </BrowserRouter>
   );

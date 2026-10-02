@@ -126,7 +126,19 @@ export default function AdminProdutos() {
     }
   };
 
-  if (loading) return <div className="p-4 text-shaday-muted">A carregar cardápio...</div>;
+  if (loading) return (
+    <div className="flex flex-col gap-6 w-full animate-pulse">
+      <div className="h-72 bg-shaday-card border border-white/5 rounded-2xl"></div>
+      <div className="bg-shaday-card rounded-2xl border border-white/5 p-5 md:p-6">
+        <div className="h-6 bg-white/10 w-48 rounded mb-6"></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+            <div key={i} className="h-48 bg-[#121212] border border-white/5 rounded-xl"></div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex flex-col gap-6">
@@ -221,7 +233,7 @@ export default function AdminProdutos() {
                   <p className="text-shaday-muted text-xs line-clamp-2 mb-1">{produto.descricao}</p>
                   
                   {produto.ingredientes && produto.ingredientes.length > 0 && (
-                    <p className="text-white/40 text-[10px] line-clamp-1 mb-2 italic">
+                    <p className="text-white/70 text-sm mt-1.5 line-clamp-2 italic">
                       {produto.ingredientes.map(i => i.nome).join(', ')}
                     </p>
                   )}

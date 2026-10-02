@@ -4,14 +4,26 @@ import axios from 'axios';
 export default function MeusPedidosModal({ onClose }) {
   const [meusPedidos, setMeusPedidos] = useState([]);
   const [loading, setLoading] = useState(true);
-  const numeroClienteLogado = "21999998888";
+  const [cliente, setCliente] = useState(null);
 
   useEffect(() => {
+    const clienteSalvo = localStorage.getItem('cliente');
+    let clienteLogado = null;
+    
+    if (clienteSalvo) {
+      clienteLogado = JSON.parse(clienteSalvo);
+      // eslint-disable-next-line
+      setCliente(clienteLogado);
+    } else {
+      setLoading(false);
+      return;
+    }
+
     const fetchMeusPedidos = async () => {
       try {
         const response = await axios.get('http://localhost:3000/api/pedidos');
         const filtrados = response.data
-          .filter(p => p.cliente_tel === numeroClienteLogado)
+          .filter(p => p.cliente_tel === clienteLogado.tel)
           .sort((a, b) => new Date(b.criado_em) - new Date(a.criado_em));
           
         setMeusPedidos(filtrados);
@@ -37,7 +49,7 @@ export default function MeusPedidosModal({ onClose }) {
     <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-0 sm:p-4 animate-fade-in">
       
       <div className="bg-shaday-bg w-full max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl relative border border-shaday-card flex flex-col h-[85vh] sm:h-[70vh] animate-slide-up">
-
+        
         <div className="p-5 border-b border-white/5 flex items-center justify-between shrink-0">
           <div>
             <h2 className="text-xl font-bold text-white">Os Meus Pedidos</h2>
@@ -53,7 +65,12 @@ export default function MeusPedidosModal({ onClose }) {
 
         <div className="p-5 overflow-y-auto flex-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full flex flex-col gap-4">
           
-          {loading ? (
+          {!cliente ? (
+             <div className="text-center mt-10 flex flex-col items-center gap-3">
+               <p className="text-white font-medium">Faça login para ver os seus pedidos.</p>
+               <button onClick={onClose} className="mt-2 text-shaday-red text-sm hover:underline">Fechar e Entrar</button>
+             </div>
+          ) : loading ? (
             <p className="text-center text-shaday-muted mt-10">A carregar os seus pedidos...</p>
           ) : meusPedidos.length === 0 ? (
             <div className="text-center mt-10 flex flex-col items-center gap-3">
@@ -65,11 +82,8 @@ export default function MeusPedidosModal({ onClose }) {
               const isConcluido = pedido.status === 'Concluido';
 
               return (
-                <div 
-                  key={pedido.id_pedido}
-                  className={`shrink-0 bg-[#121212] border rounded-xl p-5 relative overflow-hidden transition-colors ${isConcluido ? 'border-white/5 opacity-70' : 'border-shaday-red/30 shadow-[0_0_15px_rgba(239,68,68,0.1)]'}`}
-                >
-
+                <div key={pedido.id_pedido} className={`shrink-0 bg-[#121212] border rounded-xl p-5 relative overflow-hidden transition-colors ${isConcluido ? 'border-white/5 opacity-70' : 'border-shaday-red/30 shadow-[0_0_15px_rgba(239,68,68,0.1)]'}`}>
+                  
                   <div className="flex justify-between items-start mb-6">
                     <div>
                       <span className="text-shaday-red font-black text-sm tracking-wider">
@@ -86,14 +100,13 @@ export default function MeusPedidosModal({ onClose }) {
 
                   <div className="relative mb-2">
                     <div className="absolute left-0 top-3 w-full h-1 bg-white/10 rounded z-0"></div>
-
                     <div 
                       className="absolute left-0 top-3 h-1 bg-shaday-red rounded z-0 transition-all duration-500 ease-in-out" 
                       style={{ width: `${(statusAtualIndex / 3) * 100}%` }}
                     ></div>
 
                     <div className="relative z-10 flex justify-between">
-                      {['Confirmado', 'Em preparo', 'A Caminho', 'Entregue'].map((etapa, idx) => {
+                      {['Aprovado', 'Na Cozinha', 'A Caminho', 'Entregue'].map((etapa, idx) => {
                         const isAtiva = statusAtualIndex >= idx;
                         const isAtual = statusAtualIndex === idx;
                         
