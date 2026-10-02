@@ -1,146 +1,170 @@
-import { useState } from 'react';
-
-const mockPedidos = [
-  {
-    id: '1001',
-    cliente: 'João Silva',
-    bairro: 'Itacuruçá',
-    total: 85.50,
-    status: 'novo',
-    itens: '2x Hambúrguer X-Salada, 1x Coca-Cola',
-    hora: '19:45'
-  },
-  {
-    id: '1002',
-    cliente: 'Maria Oliveira',
-    bairro: 'Muriqui',
-    total: 45.00,
-    status: 'preparando',
-    itens: '1x Smash Burger (Sem cebola)',
-    hora: '19:30'
-  },
-  {
-    id: '1003',
-    cliente: 'Carlos Souza',
-    bairro: 'Centro',
-    total: 120.00,
-    status: 'entrega',
-    itens: '3x Hambúrguer Artesanal, 2x Batata Frita',
-    hora: '19:15'
-  }
-];
-
-const Coluna = ({ titulo, statusFiltro, proximoStatus, corBadge, pedidos, moverPedido }) => {
-  const pedidosFiltrados = pedidos.filter(p => p.status === statusFiltro);
-
-  return (
-    <div className="flex-1 min-w-[300px] bg-white/[0.02] rounded-2xl p-4 border border-white/5 flex flex-col h-full">
-      <div className="flex items-center justify-between mb-4 border-b border-white/10 pb-3">
-        <h3 className="font-bold text-white">{titulo}</h3>
-        <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${corBadge}`}>
-          {pedidosFiltrados.length}
-        </span>
-      </div>
-
-      <div className="flex flex-col gap-3 overflow-y-auto [&::-webkit-scrollbar]:hidden">
-        {pedidosFiltrados.map(pedido => (
-          <div key={pedido.id} className="bg-shaday-card p-4 rounded-xl border border-white/5 shadow-sm hover:border-white/10 transition-colors">
-            <div className="flex justify-between items-start mb-2">
-              <span className="text-shaday-red font-bold text-sm">#{pedido.id}</span>
-              <span className="text-shaday-muted text-xs">{pedido.hora}</span>
-            </div>
-            
-            <h4 className="text-white font-medium text-base mb-1">{pedido.cliente}</h4>
-            <p className="text-shaday-muted text-xs mb-3 flex items-center gap-1">
-              📍 {pedido.bairro}
-            </p>
-            
-            <div className="bg-black/20 p-2 rounded-lg mb-3">
-              <p className="text-white/80 text-xs line-clamp-2">{pedido.itens}</p>
-            </div>
-
-            <div className="flex items-center justify-between mt-4">
-              <span className="font-bold text-white text-sm">
-                R$ {pedido.total.toFixed(2).replace('.', ',')}
-              </span>
-              
-              {proximoStatus && (
-                <button 
-                  onClick={() => moverPedido(pedido.id, proximoStatus)}
-                  className="bg-white/10 hover:bg-shaday-red text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                >
-                  Avançar ➔
-                </button>
-              )}
-            </div>
-          </div>
-        ))}
-        
-        {pedidosFiltrados.length === 0 && (
-          <div className="text-center text-shaday-muted text-sm py-8 border-2 border-dashed border-white/5 rounded-xl">
-            Nenhum pedido nesta etapa.
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
+import { useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
+import toast from 'react-hot-toast';
 
 export default function AdminPedidos() {
-  const [pedidos, setPedidos] = useState(mockPedidos);
+  const [pedidos, setPedidos] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const moverPedido = (id, novoStatus) => {
-    setPedidos(pedidos.map(p => 
-      p.id === id ? { ...p, status: novoStatus } : p
-    ));
+  const fetchPedidos = useCallback(async () => {
+    try {
+      const response = await axios.get('http://localhost:3000/api/pedidos');
+      if (Array.isArray(response.data)) {
+        setPedidos(response.data);
+      } else {
+        setPedidos([]);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar pedidos:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchPedidos();
+    const interval = setInterval(() => { fetchPedidos(); }, 10000);
+    return () => clearInterval(interval); 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleAvancarStatus = async (pedidoAtual) => {
+    const fluxoDeStatus = {
+      'Pendente': 'Preparando',
+      'Preparando': 'Em Rota',
+      'Em Rota': 'Concluido'
+    };
+    const novoStatus = fluxoDeStatus[pedidoAtual.status];
+    if (!novoStatus) return; 
+
+    try {
+      await axios.put(`http://localhost:3000/api/pedidos/${pedidoAtual.id_pedido}/status`, {
+        status: novoStatus
+      });
+      fetchPedidos(); 
+      toast.success("Status do pedido atualizado!");
+    } catch (error) {
+      console.error("Erro ao atualizar status:", error);
+      toast.error("Erro ao mover o pedido. Verifique o backend.");
+    }
+  };
+
+  const renderColuna = (titulo, statusFiltro) => {
+    let filtrados = pedidos.filter(p => p.status === statusFiltro);
+    let ocultos = 0;
+
+    if (statusFiltro === 'Concluido' && filtrados.length > 15) {
+      ocultos = filtrados.length - 15;
+      filtrados = filtrados.slice(0, 15);
+    }
+    
+    return (
+      <div className="flex-1 min-w-[280px] flex flex-col gap-3 bg-[#121212]/50 rounded-xl p-2 border border-white/5">
+        
+        <div className="flex items-center justify-between p-2 mb-1 border-b border-white/5">
+          <h3 className="text-white font-bold text-sm">{titulo}</h3>
+          <span className="bg-white/10 text-white text-xs px-2.5 py-1 rounded-full font-bold">
+            {pedidos.filter(p => p.status === statusFiltro).length}
+          </span>
+        </div>
+        
+        {filtrados.length === 0 ? (
+          <div className="border border-white/5 border-dashed rounded-xl p-6 flex items-center justify-center text-center m-2">
+             <p className="text-shaday-muted text-xs">Nenhum pedido nesta etapa.</p>
+          </div>
+        ) : (
+          <>
+            {filtrados.map(pedido => (
+              <div key={pedido.id_pedido} className="bg-shaday-card border border-white/10 rounded-xl p-4 shadow-sm flex flex-col gap-3 hover:border-white/20 transition-colors animate-slide-up relative overflow-hidden">
+                
+                <div className="flex justify-between items-start border-b border-white/5 pb-3">
+                   <div>
+                      <span className="text-shaday-red font-black text-xs tracking-wider">
+                        #{String(pedido.id_pedido).substring(0,6).toUpperCase()}
+                      </span>
+                      <h4 className="text-white font-bold text-base mt-1">{pedido.cliente_nome}</h4>
+                      <p className="text-shaday-muted text-sm mt-0.5">{pedido.nome_bairro}</p>
+                      <p className="text-white/60 text-xs mt-1 font-mono tracking-wide">{pedido.cliente_tel}</p>
+                   </div>
+                   <span className="text-shaday-muted text-[10px] bg-black/30 px-2 py-1 rounded shrink-0 ml-2">
+                      {new Date(pedido.criado_em).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                   </span>
+                </div>
+                
+                <div className="flex flex-col gap-2 py-1">
+                   {pedido.itens?.map((item, idx) => (
+                     <div key={idx} className="leading-relaxed">
+                       <span className="text-white/50 font-bold text-sm">{item.quantidade}x </span>
+                       <span className="text-white/90 text-sm font-medium">{item.produto_nome || item.promo_nome}</span>
+                       
+                       {item.observacao && (
+                         <p className="text-shaday-red font-medium text-xs pl-5 mt-0.5 italic bg-shaday-red/5 p-1 rounded inline-block w-full">
+                           ↳ {item.observacao}
+                         </p>
+                       )}
+                     </div>
+                   ))}
+                   
+                   {pedido.observacao_geral && (
+                     <div className="mt-2 p-3 bg-black/40 rounded-lg text-sm text-white/90 italic border-l-2 border-shaday-red">
+                       "{pedido.observacao_geral}"
+                     </div>
+                   )}
+                </div>
+                
+                <div className="flex justify-between items-center mt-1 pt-3 border-t border-white/5">
+                   <span className="text-white font-black text-sm">
+                     R$ {Number(pedido.total).toFixed(2).replace('.',',')}
+                   </span>
+                   
+                   {statusFiltro !== 'Concluido' && (
+                     <button 
+                       onClick={() => handleAvancarStatus(pedido)} 
+                       className="text-[10px] uppercase tracking-wider font-bold text-white bg-white/10 hover:bg-shaday-red px-4 py-2 rounded-lg transition-colors flex items-center gap-1"
+                     >
+                       Avançar ➔
+                     </button>
+                   )}
+                </div>
+              </div>
+            ))}
+            
+            {ocultos > 0 && (
+              <div className="text-center py-2 mt-1">
+                <span className="text-[10px] text-white/30 uppercase tracking-widest font-bold">
+                  +{ocultos} pedidos antigos ocultos
+                </span>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    );
   };
 
   return (
-    <div className="h-[calc(100vh-6rem)] md:h-[calc(100vh-4rem)] flex flex-col">
-      <div className="mb-6 flex justify-between items-center">
+    <div className="flex flex-col h-[calc(100vh-6rem)]">
+      
+      <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-white">Gestão de Pedidos</h2>
-          <p className="text-shaday-muted text-sm mt-1">Acompanhe os pedidos em tempo real.</p>
+           <h2 className="text-white font-bold text-2xl">Gestão de Pedidos</h2>
+           <p className="text-shaday-muted text-sm mt-1">Acompanhe os pedidos em tempo real.</p>
         </div>
-        <button className="bg-shaday-red text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-red-700 transition-colors flex items-center gap-2">
-          <span>↻</span> Atualizar
+        <button 
+          onClick={fetchPedidos} 
+          className="flex items-center gap-2 bg-shaday-red/20 text-shaday-red hover:bg-shaday-red hover:text-white px-4 py-2 rounded-xl text-sm font-bold transition-colors border border-shaday-red/30"
+        >
+          {loading ? 'A carregar...' : '↻ Atualizar Agora'}
         </button>
       </div>
-
-      <div className="flex-1 flex flex-row gap-6 overflow-x-auto pb-4 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-track]:bg-transparent">
-        <Coluna 
-          titulo="Novos Pedidos" 
-          statusFiltro="novo" 
-          proximoStatus="preparando"
-          corBadge="bg-blue-500/20 text-blue-400"
-          pedidos={pedidos}
-          moverPedido={moverPedido}
-        />
-        <Coluna 
-          titulo="Em Preparação" 
-          statusFiltro="preparando" 
-          proximoStatus="entrega"
-          corBadge="bg-yellow-500/20 text-yellow-400"
-          pedidos={pedidos}
-          moverPedido={moverPedido}
-        />
-        <Coluna 
-          titulo="Saiu para Entrega" 
-          statusFiltro="entrega" 
-          proximoStatus="concluido"
-          corBadge="bg-orange-500/20 text-orange-400"
-          pedidos={pedidos}
-          moverPedido={moverPedido}
-        />
-        <Coluna 
-          titulo="Concluídos" 
-          statusFiltro="concluido" 
-          proximoStatus={null}
-          corBadge="bg-green-500/20 text-green-400"
-          pedidos={pedidos}
-          moverPedido={moverPedido}
-        />
+      
+      <div className="flex gap-4 overflow-x-auto pb-4 flex-1 items-start [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full">
+         {renderColuna('Novos Pedidos', 'Pendente')}
+         {renderColuna('Em Preparação', 'Preparando')}
+         {renderColuna('Saiu para Entrega', 'Em Rota')}
+         {renderColuna('Concluídos', 'Concluido')}
       </div>
+
     </div>
   );
 }

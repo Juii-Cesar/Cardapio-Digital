@@ -1,13 +1,12 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 
 export default function AdminTaxas() {
   const [bairros, setBairros] = useState([]);
   const [loading, setLoading] = useState(true);
-  
   const [novoNome, setNovoNome] = useState('');
   const [novaTaxa, setNovaTaxa] = useState('');
-
   const [editandoId, setEditandoId] = useState(null);
   const [editNome, setEditNome] = useState('');
   const [editTaxa, setEditTaxa] = useState('');
@@ -42,9 +41,10 @@ export default function AdminTaxas() {
       setNovoNome('');
       setNovaTaxa('');
       atualizarLista();
+      toast.success("Área adicionada!");
     } catch (error) {
       console.error("Erro ao adicionar bairro:", error);
-      alert("Erro ao salvar o bairro.");
+      toast.error("Erro ao salvar o bairro.");
     }
   };
 
@@ -73,6 +73,7 @@ export default function AdminTaxas() {
       });
       setEditandoId(null);
       atualizarLista();
+      toast.success("Área adicionada!");
     } catch (error) {
       console.error("Erro ao salvar edição:", error);
     }
