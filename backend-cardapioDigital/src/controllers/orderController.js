@@ -233,7 +233,7 @@ const createOrder = async (req, res) => {
 const getOrders = async (req,res)=>{
     try{
         const ordersResult = await db.query(
-            `SELECT
+          `SELECT DISTINCT ON (p.id)
               p.id AS id_pedido,
               p.status,
               p.taxa_entrega_aplicada,
@@ -242,12 +242,18 @@ const getOrders = async (req,res)=>{
               p.criado_em,
               u.nome AS cliente_nome,
               u.tel AS cliente_tel,
-              te.nome_bairro
+              te.nome_bairro,
+              ue.rua,
+              ue.numero,
+              ue.complemento,
+              ue.cep
             FROM pedidos p
             JOIN usuarios u ON p.id_usuario = u.id
             JOIN taxas_entrega te ON p.id_bairro = te.id
-            ORDER BY p.criado_em DESC
-        `);
+            LEFT JOIN usuario_end ue ON ue.id_usuario = p.id_usuario AND ue.id_bairro = p.id_bairro
+            ORDER BY p.id, p.criado_em DESC
+        `,
+        );
 
         const orders = ordersResult.rows;
 
@@ -324,8 +330,88 @@ const updateOrderStatus = async (req, res) => {
   }
 };
 
+//Lista o histórico de pedidos do cliente
+// Lista o histórico de pedidos do cliente
+const getClientOrders = async (req, res) => {
+  const authHeader = req.headers['authorization'];
+
+  if (!authHeader) {
+    return res.status(401).json({ error: 'Acesso negado. Token não fornecido.' });
+  }
+
+  const token = authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ error: 'Formato de token inválido.' });
+  }
+
+  try {
+    const secret = process.env.JWT_SECRET || 'secreta_cardapio_2026';
+    const decoded = jwt.verify(token, secret);
+    const id_usuario = decoded.id;
+
+    // DISTINCT ON (p.id) evita duplicatas quando o usuário tem múltiplos endereços
+    const ordersResult = await db.query(
+      `SELECT DISTINCT ON (p.id)
+        p.id AS id_pedido,
+        p.status,
+        p.taxa_entrega_aplicada,
+        p.total,
+        p.observacao AS observacao_geral,
+        p.criado_em,
+        te.nome_bairro,
+        ue.rua,
+        ue.numero,
+        ue.complemento,
+        ue.cep
+      FROM pedidos p
+      JOIN taxas_entrega te ON p.id_bairro = te.id
+      LEFT JOIN usuario_end ue ON ue.id_usuario = p.id_usuario AND ue.id_bairro = p.id_bairro
+      WHERE p.id_usuario = $1
+      ORDER BY p.id, p.criado_em DESC`,
+      [id_usuario]
+    );
+
+    const orders = ordersResult.rows;
+
+    // Ordena por data de criação (mais recentes primeiro) após a remoção de duplicatas
+    orders.sort((a, b) => new Date(b.criado_em) - new Date(a.criado_em));
+
+    const ordersWithItems = await Promise.all(
+      orders.map(async (order) => {
+        const itemsResult = await db.query(
+          `SELECT
+            ip.id,
+            ip.quantidade,
+            ip.observacao,
+            ip.preco_unitario,
+            prod.nome AS produto_nome,
+            pr.nome AS promo_nome
+          FROM itens_pedidos ip
+          LEFT JOIN produtos prod ON ip.id_produto = prod.id
+          LEFT JOIN promo pr ON ip.id_promo = pr.id
+          WHERE ip.id_pedido = $1`,
+          [order.id_pedido]
+        );
+
+        return {
+          ...order,
+          itens: itemsResult.rows
+        };
+      })
+    );
+
+    return res.status(200).json(ordersWithItems);
+
+  } catch (error) {
+    console.error('Erro ao buscar histórico do cliente:', error);
+    return res.status(401).json({ error: 'Token inválido ou expirado.' });
+  }
+};
+
 module.exports = {
     createOrder,
     getOrders,
-    updateOrderStatus
+    updateOrderStatus,
+    getClientOrders
 };
