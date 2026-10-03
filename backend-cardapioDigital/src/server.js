@@ -11,6 +11,7 @@ const orderRoutes =  require('./routes/orderRoutes');
 const promoRoutes = require('./routes/promoRoutes');
 const authRoutes = require('./routes/authRoutes');
 const adminAuthRoutes = require('./routes/adminAuthRoutes');
+const shopRoutes = require('./routes/shopRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -18,13 +19,14 @@ const PORT = process.env.PORT || 3000;
 //middlewares basicos
 app.use(cors());
 app.use(express.json());
-app.use('/api',productRoutes);
+app.use('/api', productRoutes);
 app.use('/api', categoryRoutes);
-app.use('/api',deliveryRoutes);
+app.use('/api', deliveryRoutes);
 app.use('/api', orderRoutes);
 app.use('/api', promoRoutes);
-app.use('/api',authRoutes);
+app.use('/api', authRoutes);
 app.use('/api', adminAuthRoutes);
+app.use('/api', shopRoutes)
 
 //rota de teste
 app.get('/', (req,res)=>{
