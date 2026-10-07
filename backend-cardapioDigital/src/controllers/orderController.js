@@ -55,6 +55,21 @@ const createOrder = async (req, res) => {
   try {
     await client.query("BEGIN");
 
+    const shopCheck = await client.query(
+      "SELECT aberta FROM config_loja WHERE id = 1",
+    );
+    
+    if (shopCheck.rows.length > 0 && !shopCheck.rows[0].aberta) {
+      await client.query("ROLLBACK");
+      client.release();
+      return res
+        .status(400)
+        .json({
+          error:
+            "A loja está fechada no momento. Não é possível realizar pedidos.",
+        });
+    }
+
     const neighborhoodResult = await client.query(
       "SELECT taxa FROM taxas_entrega WHERE id = $1 AND ativo = true",
       [id_bairro],
