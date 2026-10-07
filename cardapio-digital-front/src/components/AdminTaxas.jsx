@@ -34,10 +34,14 @@ export default function AdminTaxas() {
     if (!novoNome || novaTaxa === '') return;
 
     try {
+      const token = localStorage.getItem('adminToken');
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      
       await axios.post('http://localhost:3000/api/bairros', {
         nome_bairro: novoNome,
         taxa: Number(novaTaxa.replace(',', '.'))
-      });
+      }, config);
+      
       setNovoNome('');
       setNovaTaxa('');
       atualizarLista();
@@ -50,9 +54,13 @@ export default function AdminTaxas() {
 
   const handleToggleStatus = async (bairro) => {
     try {
+      const token = localStorage.getItem('adminToken');
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      
       await axios.put(`http://localhost:3000/api/bairros/${bairro.id}`, {
         ativo: !bairro.ativo 
-      });
+      }, config);
+      
       atualizarLista();
     } catch (error) {
       console.error("Erro ao atualizar status:", error);
@@ -67,13 +75,17 @@ export default function AdminTaxas() {
 
   const handleSalvarEdicao = async (id) => {
     try {
+      const token = localStorage.getItem('adminToken');
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      
       await axios.put(`http://localhost:3000/api/bairros/${id}`, {
         nome_bairro: editNome,
         taxa: Number(String(editTaxa).replace(',', '.'))
-      });
+      }, config);
+      
       setEditandoId(null);
       atualizarLista();
-      toast.success("Área adicionada!");
+      toast.success("Área atualizada!");
     } catch (error) {
       console.error("Erro ao salvar edição:", error);
     }

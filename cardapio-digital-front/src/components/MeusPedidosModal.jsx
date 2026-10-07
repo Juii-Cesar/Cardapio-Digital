@@ -21,12 +21,13 @@ export default function MeusPedidosModal({ onClose }) {
 
     const fetchMeusPedidos = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/api/pedidos');
-        const filtrados = response.data
-          .filter(p => p.cliente_tel === clienteLogado.tel)
-          .sort((a, b) => new Date(b.criado_em) - new Date(a.criado_em));
-          
-        setMeusPedidos(filtrados);
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const config = { headers: { Authorization: `Bearer ${token}` } };
+        const response = await axios.get('http://localhost:3000/api/cliente/pedidos', config);
+        
+        setMeusPedidos(response.data);
       } catch (error) {
         console.error("Erro ao buscar meus pedidos:", error);
       } finally {

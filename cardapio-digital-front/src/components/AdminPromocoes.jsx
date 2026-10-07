@@ -74,7 +74,10 @@ export default function AdminPromocoes() {
     if (!confirmar) return;
 
     try {
-      await axios.delete(`http://localhost:3000/api/promo/${id}`);
+      const token = localStorage.getItem('adminToken');
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      
+      await axios.delete(`http://localhost:3000/api/promo/${id}`, config);
       carregarDados(); 
       toast.success("Combo removido!");
     } catch (error) {
@@ -88,6 +91,8 @@ export default function AdminPromocoes() {
     if (!nome || !preco) return;
 
     try {
+      const token = localStorage.getItem('adminToken');
+      
       const formData = new FormData();
       formData.append('nome', nome);
       formData.append('descricao', descricao);
@@ -103,7 +108,12 @@ export default function AdminPromocoes() {
 
       if (imagem) formData.append('imagem', imagem);
 
-      const config = { headers: { 'Content-Type': 'multipart/form-data' } };
+      const config = { 
+        headers: { 
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`
+        } 
+      };
 
       if (editandoId) {
         await axios.put(`http://localhost:3000/api/promo/${editandoId}`, formData, config);

@@ -13,19 +13,9 @@ export default function AdminLogin() {
     e.preventDefault();
     setLoading(true);
 
-    // --- ATALHO PARA TESTES (Apagar quando for para produção) ---
-    if (usuario === 'admin' && senha === 'admin') {
-      localStorage.setItem('adminToken', 'token-falso-de-teste');
-      toast.success("Acesso forçado (Modo de Teste)!");
-      navigate('/admin');
-      setLoading(false);
-      return;
-    }
-    // -----------------------------------------------------------
-
     try {
       const res = await axios.post('http://localhost:3000/api/admin/login', {
-        usuario,
+        email: usuario,
         senha
       });
 

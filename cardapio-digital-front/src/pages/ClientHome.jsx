@@ -78,8 +78,16 @@ export default function ClientHome() {
           </button>
 
           {clienteLogado ? (
-            <div className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
-              <span className="text-xs text-white/70">Olá, <b className="text-white">{clienteLogado.nome.split(' ')[0]}</b></span>
+            <div className="flex items-center bg-[#121212] border border-white/10 rounded-full p-1 pr-4 shadow-sm">
+              <div className="w-8 h-8 rounded-full bg-shaday-red flex items-center justify-center text-white font-bold text-sm mr-2 shadow-inner">
+                {clienteLogado.nome.charAt(0).toUpperCase()}
+              </div>
+              <div className="flex flex-col mr-4">
+                <span className="text-[10px] text-shaday-muted leading-none mb-0.5">Bem-vindo,</span>
+                <span className="text-xs text-white font-bold leading-none truncate max-w-[90px] sm:max-w-[120px]">
+                  {clienteLogado.nome.split(' ')[0]}
+                </span>
+              </div>
               <button 
                 onClick={() => {
                   localStorage.removeItem('token');
@@ -87,9 +95,14 @@ export default function ClientHome() {
                   setClienteLogado(null);
                   toast.success("Sessão terminada.");
                 }}
-                className="text-[10px] text-shaday-muted hover:text-shaday-red underline ml-1"
+                className="text-shaday-muted hover:text-shaday-red transition-colors ml-auto flex items-center justify-center border-l border-white/10 pl-3"
+                title="Sair"
               >
-                Sair
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                  <polyline points="16 17 21 12 16 7"></polyline>
+                  <line x1="21" y1="12" x2="9" y2="12"></line>
+                </svg>
               </button>
             </div>
           ) : (

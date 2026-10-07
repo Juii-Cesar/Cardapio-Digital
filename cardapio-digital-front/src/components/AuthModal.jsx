@@ -79,7 +79,7 @@ export default function AuthModal({ onClose, onSuccess }) {
         tel: limparTelefone(tel)
       });
       setPerguntaRecuperada(res.data.pergunta_secreta);
-      setView('forgot_reset'); // Avança para a tela de criar nova senha
+      setView('forgot_reset');
     } catch (error) {
       toast.error(error.response?.data?.error || "Telefone não encontrado.");
     } finally {

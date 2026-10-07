@@ -78,6 +78,8 @@ export default function AdminProdutos() {
     if (!nome || !preco || !idCategoria) return;
 
     try {
+      const token = localStorage.getItem('adminToken');
+      
       const formData = new FormData();
       formData.append('nome', nome);
       formData.append('descricao', descricao);
@@ -94,7 +96,10 @@ export default function AdminProdutos() {
       }
 
       const config = {
-        headers: { 'Content-Type': 'multipart/form-data' }
+        headers: { 
+          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}` 
+        }
       };
 
       if (editandoId) {
@@ -117,7 +122,10 @@ export default function AdminProdutos() {
     if (!confirmar) return;
 
     try {
-      await axios.delete(`http://localhost:3000/api/produtos/${id}`);
+      const token = localStorage.getItem('adminToken');
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      
+      await axios.delete(`http://localhost:3000/api/produtos/${id}`, config);
       atualizarLista();
       toast.success("Eliminado com sucesso!");
     } catch (error) {

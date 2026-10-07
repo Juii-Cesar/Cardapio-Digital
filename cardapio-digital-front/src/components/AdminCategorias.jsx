@@ -10,9 +10,12 @@ export default function AdminCategorias() {
 
   const carregarCategorias = async () => {
     try {
-      const res = await axios.get('http://localhost:3000/api/categorias');
+      const token = localStorage.getItem('adminToken'); 
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      
+      const res = await axios.get('http://localhost:3000/api/categorias', config); 
       setCategorias(res.data);
-    } catch (error) {
+    } catch (error) { 
       console.error("Erro ao carregar categorias:", error);
     } finally {
       setLoading(false);
@@ -40,11 +43,15 @@ export default function AdminCategorias() {
     if (!nome) return;
 
     try {
+      const token = localStorage.getItem('adminToken');
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+
       if (editandoId) {
-        await axios.put(`http://localhost:3000/api/categorias/${editandoId}`, { nome });
+        await axios.put(`http://localhost:3000/api/categorias/${editandoId}`, { nome }, config);
       } else {
-        await axios.post('http://localhost:3000/api/categorias', { nome });
+        await axios.post('http://localhost:3000/api/categorias', { nome }, config);
       }
+      
       cancelarEdicao();
       carregarCategorias();
       toast.success(editandoId ? "Categoria atualizada!" : "Categoria criada!");
@@ -53,13 +60,16 @@ export default function AdminCategorias() {
       toast.error("Erro ao salvar. Verifique a rota PUT no backend!");
     }
   };
-
+  
   const handleExcluir = async (id, nomeCategoria) => {
     const confirmar = window.confirm(`Tem a certeza que deseja eliminar a categoria "${nomeCategoria}"?`);
     if (!confirmar) return;
 
     try {
-      await axios.delete(`http://localhost:3000/api/categorias/${id}`);
+      const token = localStorage.getItem('adminToken');
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+
+      await axios.delete(`http://localhost:3000/api/categorias/${id}`, config);
       carregarCategorias();
       toast.success("Categoria eliminada!");
     } catch (error) {

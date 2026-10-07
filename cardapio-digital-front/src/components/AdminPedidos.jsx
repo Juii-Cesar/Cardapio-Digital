@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
@@ -6,11 +6,31 @@ export default function AdminPedidos() {
   const [pedidos, setPedidos] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const quantidadePendentesRef = useRef(0);
+  const primeiraCarga = useRef(true);
+
   const fetchPedidos = useCallback(async () => {
     try {
-      const response = await axios.get('http://localhost:3000/api/pedidos');
+      const token = localStorage.getItem('adminToken');
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      
+      const response = await axios.get('http://localhost:3000/api/pedidos', config);
       if (Array.isArray(response.data)) {
         setPedidos(response.data);
+
+        const pendentesAtuais = response.data.filter(p => p.status === 'Pendente').length;
+        
+        if (!primeiraCarga.current && pendentesAtuais > quantidadePendentesRef.current) {
+          const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+          audio.play().catch(e => console.log("O navegador bloqueou o áudio automático:", e));
+          toast.success("NOVO PEDIDO!", {
+            duration: 5000,
+            style: { border: '1px solid #ef4444', backgroundColor: '#121212', color: '#fff', fontWeight: 'bold' }
+          });
+        }
+        
+        quantidadePendentesRef.current = pendentesAtuais;
+        primeiraCarga.current = false;
       } else {
         setPedidos([]);
       }
@@ -38,9 +58,13 @@ export default function AdminPedidos() {
     if (!novoStatus) return; 
 
     try {
+      const token = localStorage.getItem('adminToken');
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      
       await axios.put(`http://localhost:3000/api/pedidos/${pedidoAtual.id_pedido}/status`, {
         status: novoStatus
-      });
+      }, config);
+      
       fetchPedidos(); 
       toast.success("Status do pedido atualizado!");
     } catch (error) {
@@ -93,15 +117,15 @@ export default function AdminPedidos() {
                             <span className="text-shaday-red/80 font-medium">{pedido.nome_bairro}</span>
                           </>
                         ) : (
-                          <span>{pedido.nome_bairro} <span className="text-white/30 italic">(Endereço completo pendente)</span></span>
+                          <span>{pedido.nome_bairro} <span className="text-white/30 italic">(Endereço pendente)</span></span>
                         )}
                       </div>
                       
-                      <p className="text-white/60 text-xs mt-2 font-mono tracking-wide">{pedido.cliente_tel}</p>
+                      <p className="text-white/60 text-xs mt-2 font-mono tracking-wide"> {pedido.cliente_tel}</p>
                    </div>
                    <span className="text-shaday-muted text-[10px] bg-black/30 px-2 py-1 rounded shrink-0 ml-2">
                       {new Date(pedido.criado_em).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                   </span>
+                    </span>
                 </div>
                 
                 <div className="flex flex-col gap-2 py-1">

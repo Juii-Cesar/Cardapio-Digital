@@ -26,7 +26,10 @@ export default function AdminResumo() {
   useEffect(() => {
     const carregarEstatisticas = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/api/pedidos');
+        const token = localStorage.getItem('adminToken');
+        const config = { headers: { Authorization: `Bearer ${token}` } };
+        
+        const response = await axios.get('http://localhost:3000/api/pedidos', config);
         setTodosPedidos(response.data);
       } catch (error) {
         console.error("Erro ao carregar estatísticas:", error);
@@ -70,6 +73,7 @@ export default function AdminResumo() {
     const totalPedidos = pedidosFiltrados.length;
     const ticketMedio = totalPedidos > 0 ? faturamento / totalPedidos : 0;
     const mapaDias = {};
+    
     diasParaGrafico.forEach(d => {
       const formatada = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
       mapaDias[formatada] = 0;
@@ -175,6 +179,8 @@ export default function AdminResumo() {
              <span className="text-shaday-red text-xl mr-1">R$</span>
             {metricas.ticketMedio.toFixed(2).replace('.', ',')}
           </p>
+          {/* NOVA LINHA AQUI: */}
+          <p className="text-white/40 text-[10px] mt-1">Gasto médio por cliente</p>
         </div>
       </div>
 
@@ -219,7 +225,6 @@ export default function AdminResumo() {
             )}
           </div>
         </div>
-
       </div>
     </div>
   );

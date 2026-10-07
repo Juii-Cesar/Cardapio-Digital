@@ -24,7 +24,7 @@ export default function AdminDashboard() {
   const handleToggleLoja = () => {
   const novoStatus = !lojaAberta;
   setLojaAberta(novoStatus);
-  // await axios.put('http://localhost:3000/api/loja/status', { aberto: novoStatus })
+  // await axios.put('http://localhost:3000/api/loja/status'
   toast.success(novoStatus ? "A loja está ABERTA!" : "A loja está FECHADA!");
 };
 

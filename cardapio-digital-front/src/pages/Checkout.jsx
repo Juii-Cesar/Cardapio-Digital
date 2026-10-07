@@ -68,12 +68,15 @@ export default function Checkout() {
         return payloadItem;
       });
 
+      const clienteSalvo = JSON.parse(localStorage.getItem('cliente') || '{}');
       const payload = {
         cliente: {
+          nome: clienteSalvo.nome || 'Cliente',
+          tel: clienteSalvo.tel || '',
           rua,
           numero,
           complemento: complemento || '',
-          id_bairro: Number(bairroSelecionado),
+          id_bairro: bairroSelecionado,
           cep: ''
         },
         itens: itensFormatados,
@@ -124,7 +127,6 @@ export default function Checkout() {
 
       {!lojaAberta && (
         <div className="bg-shaday-red text-white text-center py-2.5 px-4 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 shadow-md">
-          <span className="text-base">⚠️</span>
           Estamos fechados no momento.
         </div>
       )}
