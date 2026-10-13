@@ -150,7 +150,7 @@ export default function ClientHome() {
 
       {!lojaAberta && (
         <div className="bg-shaday-red text-white text-center py-2.5 px-4 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 z-40 relative shadow-md">
-          Estamos fechados no momento. Não é possível realizar pedidos.
+          Estamos fechados no momento.
         </div>
       )}
 
