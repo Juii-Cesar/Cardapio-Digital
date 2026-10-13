@@ -19,7 +19,7 @@ export default function MeusPedidosModal({ onClose }) {
       return;
     }
     
-    axios.get('http://localhost:3000/api/loja/config')
+    axios.get(`${import.meta.env.VITE_API_URL}/api/loja/config`)
       .then(res => {
         if (res.data && res.data.whatsapp) {
           const num = res.data.whatsapp.replace(/\D/g, '');
@@ -34,7 +34,7 @@ export default function MeusPedidosModal({ onClose }) {
         if (!token) return;
 
         const config = { headers: { Authorization: `Bearer ${token}` } };
-        const response = await axios.get('http://localhost:3000/api/cliente/pedidos', config);
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/cliente/pedidos`, config);
         
         setMeusPedidos(response.data);
       } catch (error) {

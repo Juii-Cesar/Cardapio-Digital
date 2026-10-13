@@ -23,7 +23,7 @@ export default function AdminDashboard() {
       return;
     }
 
-    axios.get('http://localhost:3000/api/loja/config')
+    axios.get(`${import.meta.env.VITE_API_URL}/api/loja/config`)
       .then(res => {
         if (res.data && res.data.aberta !== undefined) {
           setLojaAberta(res.data.aberta);
@@ -39,7 +39,7 @@ export default function AdminDashboard() {
       
       const novoStatus = !lojaAberta;
 
-      await axios.put('http://localhost:3000/api/loja/config', { aberta: novoStatus }, config);
+      await axios.put(`${import.meta.env.VITE_API_URL}/api/loja/config`, { aberta: novoStatus }, config);
       
       setLojaAberta(novoStatus);
       toast.success(novoStatus ? "A loja está ABERTA para pedidos!" : "A loja está FECHADA!");

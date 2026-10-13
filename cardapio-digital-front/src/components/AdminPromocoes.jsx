@@ -16,8 +16,8 @@ export default function AdminPromocoes() {
   const carregarDados = useCallback(async () => {
     try {
       const [resPromos, resProdutos] = await Promise.all([
-        axios.get('http://localhost:3000/api/promo').catch(() => ({ data: [] })),
-        axios.get('http://localhost:3000/api/produtos')
+        axios.get(`${import.meta.env.VITE_API_URL}/api/promo`).catch(() => ({ data: [] })),
+        axios.get(`${import.meta.env.VITE_API_URL}/api/produtos`)
       ]);
       setPromocoes(resPromos.data);
       setProdutosDisponiveis(resProdutos.data);
@@ -77,7 +77,7 @@ export default function AdminPromocoes() {
       const token = localStorage.getItem('adminToken');
       const config = { headers: { Authorization: `Bearer ${token}` } };
       
-      await axios.delete(`http://localhost:3000/api/promo/${id}`, config);
+      await axios.delete(`${import.meta.env.VITE_API_URL}/api/promo/${id}`, config);
       carregarDados(); 
       toast.success("Combo removido!");
     } catch (error) {
@@ -116,10 +116,10 @@ export default function AdminPromocoes() {
       };
 
       if (editandoId) {
-        await axios.put(`http://localhost:3000/api/promo/${editandoId}`, formData, config);
+        await axios.put(`${import.meta.env.VITE_API_URL}/api/promo/${editandoId}`, formData, config);
         toast.success("Combo atualizado!");
       } else {
-        await axios.post('http://localhost:3000/api/promo', formData, config);
+        await axios.post(`${import.meta.env.VITE_API_URL}/api/promo`, formData, config);
         toast.success("Combo criado com sucesso!");
       }
       

@@ -26,7 +26,7 @@ export default function AuthModal({ onClose, onSuccess }) {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await axios.post('http://localhost:3000/api/cliente/login', {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/cliente/login`, {
         tel: limparTelefone(tel),
         senha
       });
@@ -50,7 +50,7 @@ export default function AuthModal({ onClose, onSuccess }) {
     setLoading(true);
 
     try {
-      const res = await axios.post('http://localhost:3000/api/cliente/cadastro', {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/cliente/cadastro`, {
         nome,
         tel: limparTelefone(tel),
         senha,
@@ -76,7 +76,7 @@ export default function AuthModal({ onClose, onSuccess }) {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await axios.post('http://localhost:3000/api/cliente/recuperar-pergunta', {
+      const res = await axios.post(`${import.meta.env.VITE_API_URL}/api/cliente/recuperar-pergunta`, {
         tel: limparTelefone(tel)
       });
       setPerguntaRecuperada(res.data.pergunta_secreta);
@@ -94,7 +94,7 @@ export default function AuthModal({ onClose, onSuccess }) {
     setLoading(true);
 
     try {
-      await axios.post('http://localhost:3000/api/cliente/redefinir-senha', {
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/cliente/redefinir-senha`, {
         tel: limparTelefone(tel),
         respostaSecreta,
         novaSenha: senha,

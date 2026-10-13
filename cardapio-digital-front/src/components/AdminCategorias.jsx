@@ -13,7 +13,7 @@ export default function AdminCategorias() {
       const token = localStorage.getItem('adminToken'); 
       const config = { headers: { Authorization: `Bearer ${token}` } };
       
-      const res = await axios.get('http://localhost:3000/api/categorias', config); 
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/categorias`, config); 
       setCategorias(res.data);
     } catch (error) { 
       console.error("Erro ao carregar categorias:", error);
@@ -47,9 +47,9 @@ export default function AdminCategorias() {
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
       if (editandoId) {
-        await axios.put(`http://localhost:3000/api/categorias/${editandoId}`, { nome }, config);
+        await axios.put(`${import.meta.env.VITE_API_URL}/api/categorias/${editandoId}`, { nome }, config);
       } else {
-        await axios.post('http://localhost:3000/api/categorias', { nome }, config);
+        await axios.post(`${import.meta.env.VITE_API_URL}/api/categorias`, { nome }, config);
       }
       
       cancelarEdicao();
@@ -69,7 +69,7 @@ export default function AdminCategorias() {
       const token = localStorage.getItem('adminToken');
       const config = { headers: { Authorization: `Bearer ${token}` } };
 
-      await axios.delete(`http://localhost:3000/api/categorias/${id}`, config);
+      await axios.delete(`${import.meta.env.VITE_API_URL}/api/categorias/${id}`, config);
       carregarCategorias();
       toast.success("Categoria eliminada!");
     } catch (error) {

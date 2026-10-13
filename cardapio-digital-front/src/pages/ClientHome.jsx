@@ -33,10 +33,10 @@ export default function ClientHome() {
     async function fetchData() {
       try {
         const [resCategorias, resProdutos, resPromos, resConfig] = await Promise.all([
-          axios.get('http://localhost:3000/api/categorias'),
-          axios.get('http://localhost:3000/api/produtos'),
-          axios.get('http://localhost:3000/api/promo').catch(() => ({ data: [] })),
-          axios.get('http://localhost:3000/api/loja/config').catch(() => ({ data: { aberta: true } }))
+          axios.get(`${import.meta.env.VITE_API_URL}/api/categorias`),
+          axios.get(`${import.meta.env.VITE_API_URL}/api/produtos`),
+          axios.get(`${import.meta.env.VITE_API_URL}/api/promo`).catch(() => ({ data: [] })),
+          axios.get(`${import.meta.env.VITE_API_URL}/api/loja/config`).catch(() => ({ data: { aberta: true } }))
         ]);
         
         setLojaAberta(resConfig.data.aberta);
