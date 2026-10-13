@@ -16,12 +16,24 @@ export default function Checkout() {
   const [complemento, setComplemento] = useState('');
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const lojaAberta = true;
+  const [lojaAberta, setLojaAberta] = useState(true);
+  const [formaPagamento, setFormaPagamento] = useState(''); 
+  const [dadosPix, setDadosPix] = useState({ chave: '', titular: '' });
 
   useEffect(() => {
     axios.get('http://localhost:3000/api/bairros?apenasAtivo=true')
       .then(response => setBairros(response.data))
       .catch(error => console.error("Erro ao carregar bairros:", error));
+
+    axios.get('http://localhost:3000/api/loja/config')
+      .then(response => {
+        setLojaAberta(response.data.aberta);
+        setDadosPix({
+          chave: response.data.chave_pix || '',
+          titular: response.data.titular_pix || ''
+        });
+      })
+      .catch(error => console.error("Erro ao carregar config da loja:", error));
   }, []);
 
   const handleBairroChange = (e) => {
@@ -33,9 +45,15 @@ export default function Checkout() {
 
   const subtotal = cartItems.reduce((acc, item) => acc + item.precoTotal, 0);
   const totalGeral = subtotal + taxaEntrega;
+
   const handleAvançarParaPagamento = () => {
     if (!bairroSelecionado || !rua || !numero) {
       toast.error("Por favor, preencha o bairro, rua e número para entrega.");
+      return;
+    }
+    
+    if (!formaPagamento) {
+      toast.error("Por favor, selecione uma forma de pagamento.");
       return;
     }
     
@@ -69,6 +87,8 @@ export default function Checkout() {
       });
 
       const clienteSalvo = JSON.parse(localStorage.getItem('cliente') || '{}');
+      const textoPagamento = formaPagamento === 'pix' ? '[PAGAMENTO: PIX]' : '[PAGAMENTO: Cartão na Entrega (Máquina)]';
+
       const payload = {
         cliente: {
           nome: clienteSalvo.nome || 'Cliente',
@@ -80,7 +100,7 @@ export default function Checkout() {
           cep: ''
         },
         itens: itensFormatados,
-        observacao_geral: ''
+        observacao_geral: textoPagamento
       };
 
       const config = {
@@ -89,7 +109,11 @@ export default function Checkout() {
 
       await axios.post('http://localhost:3000/api/pedidos', payload, config);
       
-      toast.success("Pedido realizado com sucesso! Acompanhe a entrega nos Seus Pedidos.");
+      if (formaPagamento === 'pix') {
+        localStorage.setItem('lembretePix', 'true');
+      }
+
+      toast.success("Pedido realizado com sucesso!");
       if (clearCart) clearCart();
       navigate('/'); 
       
@@ -118,7 +142,7 @@ export default function Checkout() {
   }
 
   return (
-    <div className="min-h-screen bg-shaday-bg text-shaday-text font-sans mx-auto max-w-md shadow-2xl relative pb-24">
+    <div className="min-h-screen bg-shaday-bg text-shaday-text font-sans mx-auto max-w-md shadow-2xl relative pb-52">
       
       <header className="sticky top-0 z-50 bg-shaday-bg border-b border-shaday-card px-4 py-4 flex items-center gap-4">
         <button onClick={() => window.history.back()} className="text-white hover:text-shaday-red transition-colors font-bold text-xl">←</button>
@@ -192,6 +216,53 @@ export default function Checkout() {
             </div>
           </div>
         </section>
+
+        <section className="bg-shaday-card p-4 rounded-xl border border-white/5 shadow-sm">
+          <h2 className="text-white font-medium mb-4 border-b border-white/10 pb-2">Forma de Pagamento</h2>
+          <div className="flex flex-col gap-3">
+            <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${formaPagamento === 'pix' ? 'border-green-500 bg-green-500/10' : 'border-white/10 bg-[#121212]'}`}>
+              <input type="radio" name="pagamento" value="pix" checked={formaPagamento === 'pix'} onChange={(e) => setFormaPagamento(e.target.value)} className="w-4 h-4 accent-green-500" />
+              <div className="flex flex-col">
+                <span className="text-white text-sm font-medium">PIX</span>
+                <span className="text-shaday-muted text-xs">Pague agora pelo telefone</span>
+              </div>
+            </label>
+
+            {formaPagamento === 'pix' && dadosPix.chave && (
+              <div className="ml-7 p-3 bg-black/40 rounded-lg border border-white/5">
+                <p className="text-xs text-shaday-muted mb-1">Chave PIX:</p>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-green-400 font-mono text-sm break-all">{dadosPix.chave}</span>
+                  <button 
+                    onClick={(e) => {
+                      e.preventDefault();
+                      navigator.clipboard.writeText(dadosPix.chave);
+                      toast.success("Chave PIX copiada!");
+                    }}
+                    className="bg-white/10 px-3 py-1.5 rounded text-xs text-white hover:bg-white/20 whitespace-nowrap"
+                  >
+                    Copiar
+                  </button>
+                  <div className="mt-3 p-2 bg-shaday-red/10 border border-shaday-red/20 rounded text-center">
+                    <p className="text-[11px] text-shaday-red font-medium leading-tight">
+                        O pedido só começará a ser preparado após a confirmação do pagamento.
+                    </p>
+                  </div>
+                </div>
+                {dadosPix.titular && <p className="text-xs text-shaday-muted mt-2">Titular: {dadosPix.titular}</p>}
+              </div>
+            )}
+
+            <label className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${formaPagamento === 'maquineta' ? 'border-shaday-red bg-shaday-red/10' : 'border-white/10 bg-[#121212]'}`}>
+              <input type="radio" name="pagamento" value="maquineta" checked={formaPagamento === 'maquineta'} onChange={(e) => setFormaPagamento(e.target.value)} className="w-4 h-4 accent-shaday-red" />
+              <div className="flex flex-col">
+                <span className="text-white text-sm font-medium">Cartão na Entrega</span>
+                <span className="text-shaday-muted text-xs">O motoboy leva a máquina</span>
+              </div>
+            </label>
+          </div>
+        </section>
+
       </main>
 
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-shaday-card border-t border-white/5 p-4 shadow-[0_-10px_30px_rgba(0,0,0,0.6)]">
@@ -213,11 +284,11 @@ export default function Checkout() {
 
           <button 
             className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all flex justify-center items-center gap-2 ${
-              lojaAberta 
+              lojaAberta && bairroSelecionado && rua && numero && formaPagamento && !isSubmitting
                 ? 'bg-shaday-red text-white hover:bg-red-700 active:scale-[0.98]' 
                 : 'bg-white/10 text-white/40 cursor-not-allowed'
-            } disabled:opacity-50`}
-            disabled={!lojaAberta || !bairroSelecionado || !rua || !numero || isSubmitting}
+            }`}
+            disabled={!lojaAberta || !bairroSelecionado || !rua || !numero || !formaPagamento || isSubmitting}
             onClick={() => !lojaAberta ? toast.error("A loja está fechada.") : handleAvançarParaPagamento()}
           >
             {!lojaAberta ? 'Restaurante Fechado' : isSubmitting ? 'Processando...' : 'Confirmar Pedido'}

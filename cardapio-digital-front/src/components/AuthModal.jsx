@@ -12,6 +12,7 @@ export default function AuthModal({ onClose, onSuccess }) {
   const [perguntaSecreta, setPerguntaSecreta] = useState('');
   const [respostaSecreta, setRespostaSecreta] = useState('');
   const [perguntaRecuperada, setPerguntaRecuperada] = useState('');
+  const [touchStartY, setTouchStartY] = useState(0);
   const handlePhoneChange = (e) => {
     let v = e.target.value.replace(/\D/g, '');
     if (v.length > 11) v = v.slice(0, 11);
@@ -111,8 +112,21 @@ export default function AuthModal({ onClose, onSuccess }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-0 sm:p-4 animate-fade-in">
-      <div className="bg-shaday-bg w-full max-w-md rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl relative border border-shaday-card animate-slide-up max-h-[90vh] overflow-y-auto [&::-webkit-scrollbar]:hidden">
+    <div 
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-0 sm:p-4 animate-fade-in"
+    >
+      <div
+        onTouchStart={(e) => setTouchStartY(e.touches[0].clientY)}
+        onTouchEnd={(e) => {
+          if (e.changedTouches[0].clientY - touchStartY > 80) onClose();
+        }}
+        className="bg-shaday-bg w-full max-w-md rounded-t-3xl sm:rounded-3xl p-6 pt-8 shadow-2xl relative border border-shaday-card animate-slide-up max-h-[90vh] overflow-y-auto [&::-webkit-scrollbar]:hidden"
+      >
+        
+        <div className="w-full flex justify-center absolute top-2 left-0 sm:hidden">
+          <div className="w-12 h-1.5 bg-white/20 rounded-full"></div>
+        </div>
         
         <button onClick={onClose} className="absolute top-4 right-4 bg-black/50 text-white w-8 h-8 rounded-full flex items-center justify-center hover:bg-shaday-red transition-colors">
           ✕

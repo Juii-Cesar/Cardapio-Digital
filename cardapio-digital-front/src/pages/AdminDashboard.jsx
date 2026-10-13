@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import toast from 'react-hot-toast';
 import AdminTaxas from '../components/AdminTaxas';
 import logoImg from '../assets/logo.png'; 
 import AdminPedidos from '../components/AdminPedidos';
@@ -11,22 +13,41 @@ import AdminResumo from '../components/AdminResumo';
 export default function AdminDashboard() {
 
   const [abaAtual, setAbaAtual] = useState('resumo');
+  const [lojaAberta, setLojaAberta] = useState(true);
   const navigate = useNavigate();
-
+  
   useEffect(() => {
     const token = localStorage.getItem('adminToken');
     if (!token) {
       navigate('/admin/login');
+      return;
     }
+
+    axios.get('http://localhost:3000/api/loja/config')
+      .then(res => {
+        if (res.data && res.data.aberta !== undefined) {
+          setLojaAberta(res.data.aberta);
+        }
+      })
+      .catch(err => console.error("Erro ao buscar status da loja:", err));
   }, [navigate]);
 
-  const [lojaAberta, setLojaAberta] = useState(true);
-  const handleToggleLoja = () => {
-  const novoStatus = !lojaAberta;
-  setLojaAberta(novoStatus);
-  // await axios.put('http://localhost:3000/api/loja/status'
-  toast.success(novoStatus ? "A loja está ABERTA!" : "A loja está FECHADA!");
-};
+  const handleToggleLoja = async () => {
+    try {
+      const token = localStorage.getItem('adminToken');
+      const config = { headers: { Authorization: `Bearer ${token}` } };
+      
+      const novoStatus = !lojaAberta;
+
+      await axios.put('http://localhost:3000/api/loja/config', { aberta: novoStatus }, config);
+      
+      setLojaAberta(novoStatus);
+      toast.success(novoStatus ? "A loja está ABERTA para pedidos!" : "A loja está FECHADA!");
+    } catch (error) {
+      console.error("Erro ao alterar status da loja:", error);
+      toast.error("Erro ao comunicar com o servidor.");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-shaday-bg text-white font-sans flex flex-col md:flex-row">

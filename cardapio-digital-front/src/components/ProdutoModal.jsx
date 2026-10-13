@@ -8,6 +8,7 @@ export default function ProdutoModal({ produto, onClose }) {
   const [quantidade, setQuantidade] = useState(1);
   const [ingredientesRemovidos, setIngredientesRemovidos] = useState([]);
   const [observacao, setObservacao] = useState('');
+  const [touchStartY, setTouchStartY] = useState(0);
 
   if (!produto) return null;
 
@@ -35,9 +36,21 @@ export default function ProdutoModal({ produto, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-0 sm:p-4 transition-opacity">
-
-      <div className="bg-shaday-bg w-full max-w-md rounded-t-3xl sm:rounded-3xl overflow-hidden flex flex-col max-h-[90vh] shadow-2xl relative border border-shaday-card animate-slide-up">
+    <div
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-0 sm:p-4 transition-opacity"
+    >
+      <div
+        onTouchStart={(e) => setTouchStartY(e.touches[0].clientY)}
+        onTouchEnd={(e) => {
+          if (e.changedTouches[0].clientY - touchStartY > 80) onClose();
+        }}
+        className="bg-shaday-bg w-full max-w-md rounded-t-3xl sm:rounded-3xl overflow-hidden flex flex-col max-h-[90vh] shadow-2xl relative border border-shaday-card animate-slide-up"
+      >
+        
+        <div className="w-full flex justify-center pt-3 pb-1 sm:hidden absolute top-0 z-20">
+          <div className="w-12 h-1.5 bg-white/30 rounded-full"></div>
+        </div>
 
         <button 
           onClick={onClose}
@@ -55,7 +68,7 @@ export default function ProdutoModal({ produto, onClose }) {
           <div className="absolute inset-0 bg-gradient-to-t from-shaday-bg to-transparent"></div>
         </div>
 
-        <div className="p-5 flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden">
+        <div className="p-5 flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden pt-6 sm:pt-5">
           <h2 className="text-2xl font-bold text-white mb-2">{produto.nome}</h2>
           <p className="text-shaday-muted text-sm mb-6 leading-relaxed">
             {produto.descricao}

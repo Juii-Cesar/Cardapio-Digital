@@ -18,21 +18,28 @@ export default function ClientHome() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [clienteLogado, setClienteLogado] = useState(null);
   const [lojaAberta, setLojaAberta] = useState(true);
+  const [lembretePix, setLembretePix] = useState(false);
 
   useEffect(() => {
     const clienteSalvo = localStorage.getItem('cliente');
     if (clienteSalvo) {
-      // eslint-disable-next-line
       setClienteLogado(JSON.parse(clienteSalvo));
+    }
+    
+    if (localStorage.getItem('lembretePix') === 'true') {
+      setLembretePix(true);
     }
 
     async function fetchData() {
       try {
-        const [resCategorias, resProdutos, resPromos] = await Promise.all([
+        const [resCategorias, resProdutos, resPromos, resConfig] = await Promise.all([
           axios.get('http://localhost:3000/api/categorias'),
           axios.get('http://localhost:3000/api/produtos'),
-          axios.get('http://localhost:3000/api/promo').catch(() => ({ data: [] }))
+          axios.get('http://localhost:3000/api/promo').catch(() => ({ data: [] })),
+          axios.get('http://localhost:3000/api/loja/config').catch(() => ({ data: { aberta: true } }))
         ]);
+        
+        setLojaAberta(resConfig.data.aberta);
         
         const promosAtivas = resPromos.data;
         setPromos(promosAtivas);
@@ -70,12 +77,37 @@ export default function ClientHome() {
         <img src={logoImg} alt="Logo Sushi Shaday" className="h-12 w-auto object-contain" />
         
         <div className="flex gap-2 items-center">
-          <button 
-            onClick={() => setShowMeusPedidos(true)}
-            className="text-xs font-bold text-shaday-red bg-shaday-red/10 px-3 py-1.5 rounded-full border border-shaday-red/20 hover:bg-shaday-red hover:text-white transition-colors flex items-center gap-1"
-          >
-            Pedidos
-          </button>
+          
+          <div className="relative">
+            <button 
+              onClick={() => {
+                setShowMeusPedidos(true);
+                setLembretePix(false);
+                localStorage.removeItem('lembretePix');
+              }}
+              className={`text-xs font-bold px-3 py-1.5 rounded-full border transition-all flex items-center gap-1.5 ${
+                lembretePix
+                  ? 'bg-shaday-red text-white border-shaday-red shadow-[0_0_12px_rgba(239,68,68,0.6)]'
+                  : 'text-shaday-red bg-shaday-red/10 border-shaday-red/20 hover:bg-shaday-red hover:text-white'
+              }`}
+            >
+              Pedidos
+              {lembretePix && (
+                <span className="flex h-2 w-2 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                </span>
+              )}
+            </button>
+
+            {lembretePix && (
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-3 bg-white text-black text-[10px] font-bold px-3 py-1.5 rounded-lg shadow-xl whitespace-nowrap animate-bounce z-50 flex flex-col items-center">
+                <div className="absolute -top-1 w-2 h-2 bg-white rotate-45"></div>
+                <span className="relative z-10 text-shaday-red uppercase tracking-wider mb-0.5">Falta um detalhe!</span>
+                <span className="relative z-10 text-black/70 font-medium">Envie o comprovante.</span>
+              </div>
+            )}
+          </div>
 
           {clienteLogado ? (
             <div className="flex items-center bg-[#121212] border border-white/10 rounded-full p-1 pr-4 shadow-sm">

@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import impressoraIcon from '../assets/impressora-com-papel-impresso.svg'; 
 
 export default function AdminPedidos() {
   const [pedidos, setPedidos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [filtroMobile, setFiltroMobile] = useState('Pendente');
 
   const quantidadePendentesRef = useRef(0);
   const primeiraCarga = useRef(true);
@@ -42,7 +44,6 @@ export default function AdminPedidos() {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line
     fetchPedidos();
     const interval = setInterval(() => { fetchPedidos(); }, 10000);
     return () => clearInterval(interval);
@@ -65,6 +66,8 @@ export default function AdminPedidos() {
         status: novoStatus
       }, config);
       
+      setFiltroMobile(novoStatus); 
+      
       fetchPedidos(); 
       toast.success("Status do pedido atualizado!");
     } catch (error) {
@@ -73,17 +76,85 @@ export default function AdminPedidos() {
     }
   };
 
+  const handleImprimirPedido = (pedido) => {
+    const janelaImpressao = window.open('', '', 'width=400,height=600');
+    
+    const conteudoTalao = `
+      <html>
+        <head>
+          <style>
+            body { font-family: monospace; width: 300px; margin: 0 auto; padding: 10px; font-size: 12px; color: #000; }
+            .center { text-align: center; }
+            .divider { border-bottom: 1px dashed #000; margin: 10px 0; }
+            .bold { font-weight: bold; }
+            .flex-between { display: flex; justify-content: space-between; }
+          </style>
+        </head>
+        <body>
+          <div class="center">
+            <h2 style="margin:0;">SUSHI SHADAY</h2>
+            <p style="margin:5px 0;">Pedido #${String(pedido.id_pedido).substring(0,6).toUpperCase()}</p>
+            <p style="margin:5px 0;">Data: ${new Date(pedido.criado_em.includes('Z') ? pedido.criado_em : `${pedido.criado_em}Z`).toLocaleTimeString('pt-BR')}</p>
+          </div>
+          
+          <div class="divider"></div>
+          
+          <p class="bold">CLIENTE: ${pedido.cliente_nome}</p>
+          <p>Tel: ${pedido.cliente_tel}</p>
+          <p>Endereço: ${pedido.rua}, ${pedido.numero}</p>
+          ${pedido.complemento ? `<p>Comp: ${pedido.complemento}</p>` : ''}
+          <p>Bairro: ${pedido.nome_bairro}</p>
+          
+          <div class="divider"></div>
+          
+          <p class="bold">ITENS DO PEDIDO:</p>
+          ${pedido.itens.map(item => `
+            <div class="flex-between">
+              <span>${item.quantidade}x${item.produto_nome || item.promo_nome}</span>
+              <span>R$ ${item.preco_unitario}</span>
+            </div>
+            ${item.observacao ? `<small style="display:block; margin-bottom:5px;">Obs: ${item.observacao}</small>` : ''}
+          `).join('')}
+          
+          <div class="divider"></div>
+          
+          ${pedido.observacao_geral ? `
+            <p class="bold">OBSERVAÇÕES DO PEDIDO:</p>
+            <p>${pedido.observacao_geral}</p>
+            <div class="divider"></div>
+          ` : ''}
+
+          <div class="flex-between bold" style="font-size: 14px;">
+            <span>TOTAL:</span>
+            <span>R$ ${Number(pedido.total).toFixed(2).replace('.', ',')}</span>
+          </div>
+          
+          <div class="center" style="margin-top: 20px;">
+            <p>Obrigado pela preferência!</p>
+          </div>
+          
+          <script>
+            window.onload = function() { window.print(); window.close(); }
+          </script>
+        </body>
+      </html>
+    `;
+
+    janelaImpressao.document.write(conteudoTalao);
+    janelaImpressao.document.close();
+  };
+
   const renderColuna = (titulo, statusFiltro) => {
     let filtrados = pedidos.filter(p => p.status === statusFiltro);
     let ocultos = 0;
 
-    if (statusFiltro === 'Concluido' && filtrados.length > 15) {
+    if ((statusFiltro === 'Concluido' || statusFiltro === 'Cancelado') && filtrados.length > 15) {
       ocultos = filtrados.length - 15;
       filtrados = filtrados.slice(0, 15);
     }
     
     return (
-      <div className="flex-1 min-w-[280px] flex flex-col gap-3 bg-[#121212]/50 rounded-xl p-2 border border-white/5">
+      <div className={`flex-1 min-w-[280px] w-full md:w-auto flex-col gap-3 bg-[#121212]/50 rounded-xl p-2 border border-white/5 ${filtroMobile === statusFiltro ? 'flex' : 'hidden md:flex'}`}>
         
         <div className="flex items-center justify-between p-2 mb-1 border-b border-white/5">
           <h3 className="text-white font-bold text-sm">{titulo}</h3>
@@ -98,73 +169,142 @@ export default function AdminPedidos() {
           </div>
         ) : (
           <>
-            {filtrados.map(pedido => (
-              <div key={pedido.id_pedido} className="bg-shaday-card border border-white/10 rounded-xl p-4 shadow-sm flex flex-col gap-3 hover:border-white/20 transition-colors animate-slide-up relative overflow-hidden">
-                
-                <div className="flex justify-between items-start border-b border-white/5 pb-3">
-                   <div>
-                      <span className="text-shaday-red font-black text-xs tracking-wider">
-                        #{String(pedido.id_pedido).substring(0,6).toUpperCase()}
+            {filtrados.map(pedido => {
+              const isCancelado = statusFiltro === 'Cancelado';
+
+              return (
+                <div 
+                  key={pedido.id_pedido} 
+                  className={`border rounded-xl p-4 shadow-sm flex flex-col gap-3 transition-all animate-slide-up relative overflow-hidden ${
+                    isCancelado 
+                      ? 'bg-[#180a0a] border-shaday-red/20 opacity-70' 
+                      : 'bg-shaday-card border-white/10 hover:border-white/20'
+                  }`}
+                >
+                  <div className="flex justify-between items-start border-b border-white/5 pb-3">
+                    <div>
+                        <span className="text-shaday-red font-black text-xs tracking-wider">
+                          #{String(pedido.id_pedido).substring(0,6).toUpperCase()}
+                        </span>
+                        <h4 className="text-white font-bold text-base mt-1">{pedido.cliente_nome}</h4>
+                        
+                        <div className="text-shaday-muted text-xs mt-1 leading-relaxed bg-black/20 p-2 rounded-lg border border-white/5">
+                          {pedido.rua ? (
+                            <>
+                              <span className="text-white/80">{pedido.rua}, {pedido.numero}</span>
+                              {pedido.complemento && <span className="text-white/60"> ({pedido.complemento})</span>}
+                              <br />
+                              <span className="text-shaday-red/80 font-medium">{pedido.nome_bairro}</span>
+                            </>
+                          ) : (
+                            <span>{pedido.nome_bairro} <span className="text-white/30 italic">(Endereço pendente)</span></span>
+                          )}
+                        </div>
+                        
+                        <p className="text-white/60 text-xs mt-2 font-mono tracking-wide flex items-center gap-1"> 
+                          {pedido.cliente_tel}
+                        </p>
+                    </div>
+                    <span className="text-shaday-muted text-[10px] bg-black/30 px-2 py-1 rounded shrink-0 ml-2">
+                        {new Date(pedido.criado_em.includes('Z') ? pedido.criado_em : `${pedido.criado_em}Z`).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}
                       </span>
-                      <h4 className="text-white font-bold text-base mt-1">{pedido.cliente_nome}</h4>
-                      
-                      <div className="text-shaday-muted text-xs mt-1 leading-relaxed bg-black/20 p-2 rounded-lg border border-white/5">
-                        {pedido.rua ? (
-                          <>
-                            <span className="text-white/80">{pedido.rua}, {pedido.numero}</span>
-                            {pedido.complemento && <span className="text-white/60"> ({pedido.complemento})</span>}
-                            <br />
-                            <span className="text-shaday-red/80 font-medium">{pedido.nome_bairro}</span>
-                          </>
-                        ) : (
-                          <span>{pedido.nome_bairro} <span className="text-white/30 italic">(Endereço pendente)</span></span>
+                  </div>
+                  
+                  <div className="flex flex-col gap-2 py-1">
+                    {pedido.itens?.map((item, idx) => (
+                      <div key={idx} className="leading-relaxed">
+                        <span className="text-white/50 font-bold text-sm">{item.quantidade}x </span>
+                        <span className="text-white/90 text-sm font-medium">{item.produto_nome || item.promo_nome}</span>
+                        
+                        {item.observacao && (
+                          <p className="text-shaday-red font-medium text-xs pl-5 mt-0.5 italic bg-shaday-red/5 p-1 rounded inline-block w-full">
+                            ↳ {item.observacao}
+                          </p>
                         )}
                       </div>
+                    ))}
+                    
+                    {(() => {
+                      const isPix = pedido.observacao_geral?.includes('PIX');
+                      const isMaquineta = pedido.observacao_geral?.includes('Máquina') || pedido.observacao_geral?.includes('Maquineta');
                       
-                      <p className="text-white/60 text-xs mt-2 font-mono tracking-wide"> {pedido.cliente_tel}</p>
-                   </div>
-                   <span className="text-shaday-muted text-[10px] bg-black/30 px-2 py-1 rounded shrink-0 ml-2">
-                      {new Date(pedido.criado_em).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                    </span>
+                      let obsLimpa = pedido.observacao_geral || '';
+                      obsLimpa = obsLimpa.replace(/\[PAGAMENTO:.*?\]/g, '').trim();
+
+                      return (
+                        <div className="mt-2 flex flex-col gap-2">
+                          {(isPix || isMaquineta) && (
+                            <div className={`inline-flex w-fit px-3 py-1.5 rounded-lg text-xs font-bold border shadow-sm ${
+                              isPix 
+                                ? 'bg-green-500/10 text-green-400 border-green-500/30' 
+                                : 'bg-blue-500/10 text-blue-400 border-blue-500/30'
+                            }`}>
+                              {isPix ? 'PAGAMENTO: PIX' : 'PAGAMENTO: MÁQUINA'}
+                            </div>
+                          )}
+                          
+                          {obsLimpa && (
+                            <div className="p-3 bg-black/40 rounded-lg text-sm text-white/90 italic border-l-2 border-shaday-red">
+                              "{obsLimpa}"
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                  
+                  <div className="flex flex-col gap-2 mt-1 pt-3 border-t border-white/5">
+                    <div className="flex justify-between items-center">
+                      <span className="text-white font-black text-sm">
+                        R$ {Number(pedido.total).toFixed(2).replace('.',',')}
+                      </span>
+                      <button 
+                        onClick={() => handleImprimirPedido(pedido)}
+                        className="transition-colors bg-white/5 hover:bg-white/10 p-1.5 rounded flex items-center justify-center"
+                        title="Imprimir Pedido"
+                      >
+                        <img 
+                          src={impressoraIcon} 
+                          alt="Imprimir" 
+                          className="w-5 h-5 invert opacity-60 hover:opacity-100 transition-opacity" 
+                        />
+                      </button>
+                    </div>
+                    
+                    <div className="flex gap-2 justify-end mt-1">
+                      {(!isCancelado && statusFiltro !== 'Concluido') && (
+                        <button 
+                          onClick={async () => {
+                            if(window.confirm("Tem a certeza que quer cancelar este pedido?")) {
+                              try {
+                                const token = localStorage.getItem('adminToken');
+                                await axios.put(`http://localhost:3000/api/pedidos/${pedido.id_pedido}/status`, { status: 'Cancelado' }, { headers: { Authorization: `Bearer ${token}` } });
+                                fetchPedidos();
+                                toast.success("Pedido cancelado.");
+                              } catch(e) {
+                                toast.error("Erro ao cancelar pedido.");
+                              }
+                            }
+                          }}
+                          className="text-[10px] uppercase tracking-wider font-bold text-white/50 border border-white/10 hover:border-shaday-red hover:text-shaday-red px-3 py-1.5 rounded-lg transition-colors"
+                        >
+                          Cancelar
+                        </button>
+                      )}
+
+                      {(!isCancelado && statusFiltro !== 'Concluido') && (
+                        <button 
+                          onClick={() => handleAvancarStatus(pedido)} 
+                          className="text-[10px] uppercase tracking-wider font-bold text-white bg-white/10 hover:bg-shaday-red px-4 py-1.5 rounded-lg transition-colors flex-1 text-center flex justify-center items-center"
+                        >
+                          Avançar ➔
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                
-                <div className="flex flex-col gap-2 py-1">
-                   {pedido.itens?.map((item, idx) => (
-                     <div key={idx} className="leading-relaxed">
-                       <span className="text-white/50 font-bold text-sm">{item.quantidade}x </span>
-                       <span className="text-white/90 text-sm font-medium">{item.produto_nome || item.promo_nome}</span>
-                       
-                       {item.observacao && (
-                         <p className="text-shaday-red font-medium text-xs pl-5 mt-0.5 italic bg-shaday-red/5 p-1 rounded inline-block w-full">
-                           ↳ {item.observacao}
-                         </p>
-                       )}
-                     </div>
-                   ))}
-                   
-                   {pedido.observacao_geral && (
-                     <div className="mt-2 p-3 bg-black/40 rounded-lg text-sm text-white/90 italic border-l-2 border-shaday-red">
-                       "{pedido.observacao_geral}"
-                     </div>
-                   )}
-                </div>
-                
-                <div className="flex justify-between items-center mt-1 pt-3 border-t border-white/5">
-                   <span className="text-white font-black text-sm">
-                     R$ {Number(pedido.total).toFixed(2).replace('.',',')}
-                   </span>
-                   
-                   {statusFiltro !== 'Concluido' && (
-                     <button 
-                       onClick={() => handleAvancarStatus(pedido)} 
-                       className="text-[10px] uppercase tracking-wider font-bold text-white bg-white/10 hover:bg-shaday-red px-4 py-2 rounded-lg transition-colors flex items-center gap-1"
-                     >
-                       Avançar ➔
-                     </button>
-                   )}
-                </div>
-              </div>
-            ))}
+              );
+            })}
             
             {ocultos > 0 && (
               <div className="text-center py-2 mt-1">
@@ -179,20 +319,52 @@ export default function AdminPedidos() {
     );
   };
 
+  const abasMobile = [
+    { id: 'Pendente', label: 'Novos' },
+    { id: 'Preparando', label: 'Cozinha' },
+    { id: 'Em Rota', label: 'Em Rota' },
+    { id: 'Concluido', label: 'Concluídos' },
+    { id: 'Cancelado', label: 'Cancelados' }
+  ];
+
   return (
     <div className="flex flex-col h-[calc(100vh-6rem)]">
       
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
            <h2 className="text-white font-bold text-2xl">Gestão de Pedidos</h2>
            <p className="text-shaday-muted text-sm mt-1">Acompanhe os pedidos em tempo real.</p>
         </div>
         <button 
           onClick={fetchPedidos} 
-          className="flex items-center gap-2 bg-shaday-red/20 text-shaday-red hover:bg-shaday-red hover:text-white px-4 py-2 rounded-xl text-sm font-bold transition-colors border border-shaday-red/30"
+          className="flex items-center justify-center w-full sm:w-auto gap-2 bg-shaday-red/20 text-shaday-red hover:bg-shaday-red hover:text-white px-4 py-2 rounded-xl text-sm font-bold transition-colors border border-shaday-red/30"
         >
           {loading ? 'A carregar...' : '↻ Atualizar Agora'}
         </button>
+      </div>
+      
+      <div className="md:hidden flex overflow-x-auto gap-2 pb-2 mb-4 [&::-webkit-scrollbar]:hidden shrink-0">
+        {abasMobile.map(aba => {
+          const quantidade = pedidos.filter(p => p.status === aba.id).length;
+          return (
+            <button
+              key={aba.id}
+              onClick={() => setFiltroMobile(aba.id)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl whitespace-nowrap text-sm font-bold transition-colors border ${
+                filtroMobile === aba.id 
+                  ? 'bg-shaday-red border-shaday-red text-white shadow-md' 
+                  : 'bg-[#121212] border-white/5 text-shaday-muted hover:bg-white/5'
+              }`}
+            >
+              {aba.label}
+              <span className={`px-2 py-0.5 rounded-full text-[10px] ${
+                filtroMobile === aba.id ? 'bg-white/20 text-white' : 'bg-white/5 text-white/50'
+              }`}>
+                {quantidade}
+              </span>
+            </button>
+          )
+        })}
       </div>
       
       <div className="flex gap-4 overflow-x-auto pb-4 flex-1 items-start [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full">
@@ -200,6 +372,7 @@ export default function AdminPedidos() {
          {renderColuna('Em Preparação', 'Preparando')}
          {renderColuna('Saiu para Entrega', 'Em Rota')}
          {renderColuna('Concluídos', 'Concluido')}
+         {renderColuna('Cancelados', 'Cancelado')}
       </div>
 
     </div>

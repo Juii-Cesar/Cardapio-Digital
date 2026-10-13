@@ -3,6 +3,7 @@ import axios from 'axios';
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid 
 } from 'recharts';
+import toast from 'react-hot-toast';
 
 const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
@@ -22,24 +23,52 @@ export default function AdminResumo() {
   const [loading, setLoading] = useState(true);
   const [todosPedidos, setTodosPedidos] = useState([]);
   const [filtroTempo, setFiltroTempo] = useState('7d');
+  const [chavePix, setChavePix] = useState('');
+  const [titularPix, setTitularPix] = useState('');
+  const [salvandoPix, setSalvandoPix] = useState(false);
 
   useEffect(() => {
-    const carregarEstatisticas = async () => {
+    const carregarDados = async () => {
       try {
         const token = localStorage.getItem('adminToken');
         const config = { headers: { Authorization: `Bearer ${token}` } };
         
-        const response = await axios.get('http://localhost:3000/api/pedidos', config);
-        setTodosPedidos(response.data);
+        const resPedidos = await axios.get('http://localhost:3000/api/pedidos', config);
+        setTodosPedidos(resPedidos.data);
+
+        const resConfig = await axios.get('http://localhost:3000/api/loja/config');
+        if (resConfig.data) {
+          setChavePix(resConfig.data.chave_pix || '');
+          setTitularPix(resConfig.data.titular_pix || '');
+        }
+
       } catch (error) {
-        console.error("Erro ao carregar estatísticas:", error);
+        console.error("Erro ao carregar dados:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    carregarEstatisticas();
+    carregarDados();
   }, []);
+
+  const handleSalvarPix = async (e) => {
+    e.preventDefault();
+    setSalvandoPix(true);
+    try {
+      const token = localStorage.getItem('adminToken');
+      await axios.put('http://localhost:3000/api/loja/config', 
+        { chave_pix: chavePix, titular_pix: titularPix }, 
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success("Dados do PIX atualizados!");
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro ao salvar dados do PIX.");
+    } finally {
+      setSalvandoPix(false);
+    }
+  };
 
   const { metricas, dadosGrafico, topProdutos } = useMemo(() => {
     if (!todosPedidos.length) return { metricas: { faturamento: 0, totalPedidos: 0, ticketMedio: 0 }, dadosGrafico: [], topProdutos: [] };
@@ -68,7 +97,8 @@ export default function AdminResumo() {
       }
     }
 
-    const pedidosFiltrados = todosPedidos.filter(p => new Date(p.criado_em) >= dataLimite);
+    const pedidosFiltrados = todosPedidos.filter(p => p.status !== 'Cancelado' && new Date(p.criado_em) >= dataLimite);
+    
     const faturamento = pedidosFiltrados.reduce((acc, p) => acc + Number(p.total), 0);
     const totalPedidos = pedidosFiltrados.length;
     const ticketMedio = totalPedidos > 0 ? faturamento / totalPedidos : 0;
@@ -130,7 +160,7 @@ export default function AdminResumo() {
   );
 
   return (
-    <div className="flex flex-col gap-6 w-full animate-fade-in">
+    <div className="flex flex-col gap-6 w-full animate-fade-in pb-10">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-2">
         <div>
           <h2 className="text-white font-bold text-2xl">Visão Geral</h2>
@@ -179,7 +209,6 @@ export default function AdminResumo() {
              <span className="text-shaday-red text-xl mr-1">R$</span>
             {metricas.ticketMedio.toFixed(2).replace('.', ',')}
           </p>
-          {/* NOVA LINHA AQUI: */}
           <p className="text-white/40 text-[10px] mt-1">Gasto médio por cliente</p>
         </div>
       </div>
@@ -226,6 +255,42 @@ export default function AdminResumo() {
           </div>
         </div>
       </div>
+
+      <div className="bg-shaday-card border border-white/5 rounded-2xl p-6 shadow-sm">
+        <h3 className="text-white font-bold mb-1">Configuração de Pagamento (PIX)</h3>
+        <p className="text-shaday-muted text-xs mb-4">Estes dados aparecerão para o cliente copiar na hora de finalizar o pedido.</p>
+
+        <form onSubmit={handleSalvarPix} className="flex flex-col sm:flex-row gap-4 items-end">
+          <div className="flex-1 w-full">
+            <label className="block text-xs text-shaday-muted mb-1 ml-1">Chave PIX (Telefone, CPF, Email ou Aleatória)</label>
+            <input
+              type="text"
+              value={chavePix}
+              onChange={(e) => setChavePix(e.target.value)}
+              placeholder="Ex: 21999999999"
+              className="w-full bg-[#121212] border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-shaday-red text-sm transition-colors"
+            />
+          </div>
+          <div className="flex-1 w-full">
+            <label className="block text-xs text-shaday-muted mb-1 ml-1">Nome do Titular da Conta</label>
+            <input
+              type="text"
+              value={titularPix}
+              onChange={(e) => setTitularPix(e.target.value)}
+              placeholder="Ex: Maria da Silva"
+              className="w-full bg-[#121212] border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-shaday-red text-sm transition-colors"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={salvandoPix}
+            className="bg-shaday-red hover:bg-red-700 text-white px-6 py-3 rounded-xl font-bold text-sm transition-colors whitespace-nowrap disabled:opacity-50 h-[46px]"
+          >
+            {salvandoPix ? 'A Salvar...' : 'Salvar Dados'}
+          </button>
+        </form>
+      </div>
+
     </div>
   );
 }
