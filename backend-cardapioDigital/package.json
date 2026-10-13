@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node src/routes/server.js",
-    "dev": "nodemon src/server.js"
+    "dev": "nodemon --exec node --dns-result-order=ipv4first src/server.js"
   },
   "keywords": [],
   "author": "",
@@ -13,9 +13,11 @@
   "type": "commonjs",
   "dependencies": {
     "@supabase/supabase-js": "^2.116.0",
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
     "multer": "^2.4.0",
     "pg": "^8.23.0"
   },
