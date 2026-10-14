@@ -12,7 +12,7 @@ export default function AdminTaxas() {
   const [editTaxa, setEditTaxa] = useState('');
 
   useEffect(() => {
-    axios.get('http://localhost:3000/api/bairros')
+    axios.get(`${import.meta.env.VITE_API_URL}/api/bairros`)
       .then(res => {
         setBairros(res.data);
       })
@@ -22,7 +22,7 @@ export default function AdminTaxas() {
 
   const atualizarLista = async () => {
     try {
-      const res = await axios.get('http://localhost:3000/api/bairros');
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/api/bairros`);
       setBairros(res.data);
     } catch (error) {
       console.error("Erro ao atualizar bairros:", error);
@@ -37,7 +37,7 @@ export default function AdminTaxas() {
       const token = localStorage.getItem('adminToken');
       const config = { headers: { Authorization: `Bearer ${token}` } };
       
-      await axios.post('http://localhost:3000/api/bairros', {
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/bairros`, {
         nome_bairro: novoNome,
         taxa: Number(novaTaxa.replace(',', '.'))
       }, config);
@@ -57,7 +57,7 @@ export default function AdminTaxas() {
       const token = localStorage.getItem('adminToken');
       const config = { headers: { Authorization: `Bearer ${token}` } };
       
-      await axios.put(`http://localhost:3000/api/bairros/${bairro.id}`, {
+      await axios.put(`${import.meta.env.VITE_API_URL}/api/bairros/${bairro.id}`, {
         ativo: !bairro.ativo 
       }, config);
       
@@ -78,7 +78,7 @@ export default function AdminTaxas() {
       const token = localStorage.getItem('adminToken');
       const config = { headers: { Authorization: `Bearer ${token}` } };
       
-      await axios.put(`http://localhost:3000/api/bairros/${id}`, {
+      await axios.put(`${import.meta.env.VITE_API_URL}/api/bairros/${id}`, {
         nome_bairro: editNome,
         taxa: Number(String(editTaxa).replace(',', '.'))
       }, config);

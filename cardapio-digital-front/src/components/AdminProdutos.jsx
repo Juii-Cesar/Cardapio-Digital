@@ -16,8 +16,8 @@ export default function AdminProdutos() {
 
   useEffect(() => {
     Promise.all([
-      axios.get('http://localhost:3000/api/categorias'),
-      axios.get('http://localhost:3000/api/produtos')
+      axios.get(`${import.meta.env.VITE_API_URL}/api/categorias`),
+      axios.get(`${import.meta.env.VITE_API_URL}/api/produtos`)
     ])
     .then(([resCategorias, resProdutos]) => {
       setCategorias(resCategorias.data);
@@ -33,8 +33,8 @@ export default function AdminProdutos() {
   const atualizarLista = async () => {
     try {
       const [resCategorias, resProdutos] = await Promise.all([
-        axios.get('http://localhost:3000/api/categorias'),
-        axios.get('http://localhost:3000/api/produtos')
+        axios.get(`${import.meta.env.VITE_API_URL}/api/categorias`),
+        axios.get(`${import.meta.env.VITE_API_URL}/api/produtos`)
       ]);
       setCategorias(resCategorias.data);
       setProdutos(resProdutos.data);
@@ -103,9 +103,9 @@ export default function AdminProdutos() {
       };
 
       if (editandoId) {
-        await axios.put(`http://localhost:3000/api/produtos/${editandoId}`, formData, config);
+        await axios.put(`${import.meta.env.VITE_API_URL}/api/produtos/${editandoId}`, formData, config);
       } else {
-        await axios.post('http://localhost:3000/api/produtos', formData, config);
+        await axios.post(`${import.meta.env.VITE_API_URL}/api/produtos`, formData, config);
       }
       
       cancelarEdicao(); 
@@ -125,7 +125,7 @@ export default function AdminProdutos() {
       const token = localStorage.getItem('adminToken');
       const config = { headers: { Authorization: `Bearer ${token}` } };
       
-      await axios.delete(`http://localhost:3000/api/produtos/${id}`, config);
+      await axios.delete(`${import.meta.env.VITE_API_URL}/api/produtos/${id}`, config);
       atualizarLista();
       toast.success("Eliminado com sucesso!");
     } catch (error) {

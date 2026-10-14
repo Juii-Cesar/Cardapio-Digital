@@ -33,10 +33,10 @@ export default function AdminResumo() {
         const token = localStorage.getItem('adminToken');
         const config = { headers: { Authorization: `Bearer ${token}` } };
         
-        const resPedidos = await axios.get('http://localhost:3000/api/pedidos', config);
+        const resPedidos = await axios.get(`${import.meta.env.VITE_API_URL}/api/pedidos`, config);
         setTodosPedidos(resPedidos.data);
 
-        const resConfig = await axios.get('http://localhost:3000/api/loja/config');
+        const resConfig = await axios.get(`${import.meta.env.VITE_API_URL}/api/loja/config`);
         if (resConfig.data) {
           setChavePix(resConfig.data.chave_pix || '');
           setTitularPix(resConfig.data.titular_pix || '');
@@ -57,7 +57,7 @@ export default function AdminResumo() {
     setSalvandoPix(true);
     try {
       const token = localStorage.getItem('adminToken');
-      await axios.put('http://localhost:3000/api/loja/config', 
+      await axios.put(`${import.meta.env.VITE_API_URL}/api/loja/config`, 
         { chave_pix: chavePix, titular_pix: titularPix }, 
         { headers: { Authorization: `Bearer ${token}` } }
       );

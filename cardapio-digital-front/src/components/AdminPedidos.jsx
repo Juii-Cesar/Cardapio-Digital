@@ -16,7 +16,7 @@ export default function AdminPedidos() {
       const token = localStorage.getItem('adminToken');
       const config = { headers: { Authorization: `Bearer ${token}` } };
       
-      const response = await axios.get('http://localhost:3000/api/pedidos', config);
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/pedidos`, config);
       if (Array.isArray(response.data)) {
         setPedidos(response.data);
 
@@ -62,7 +62,7 @@ export default function AdminPedidos() {
       const token = localStorage.getItem('adminToken');
       const config = { headers: { Authorization: `Bearer ${token}` } };
       
-      await axios.put(`http://localhost:3000/api/pedidos/${pedidoAtual.id_pedido}/status`, {
+      await axios.put(`${import.meta.env.VITE_API_URL}/api/pedidos/${pedidoAtual.id_pedido}/status`, {
         status: novoStatus
       }, config);
       
@@ -278,7 +278,7 @@ export default function AdminPedidos() {
                             if(window.confirm("Tem a certeza que quer cancelar este pedido?")) {
                               try {
                                 const token = localStorage.getItem('adminToken');
-                                await axios.put(`http://localhost:3000/api/pedidos/${pedido.id_pedido}/status`, { status: 'Cancelado' }, { headers: { Authorization: `Bearer ${token}` } });
+                                await axios.put(`${import.meta.env.VITE_API_URL}/api/pedidos/${pedido.id_pedido}/status`, { status: 'Cancelado' }, { headers: { Authorization: `Bearer ${token}` } });
                                 fetchPedidos();
                                 toast.success("Pedido cancelado.");
                               } catch(e) {

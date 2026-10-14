@@ -33,10 +33,10 @@ export default function ClientHome() {
     async function fetchData() {
       try {
         const [resCategorias, resProdutos, resPromos, resConfig] = await Promise.all([
-          axios.get('http://localhost:3000/api/categorias'),
-          axios.get('http://localhost:3000/api/produtos'),
-          axios.get('http://localhost:3000/api/promo').catch(() => ({ data: [] })),
-          axios.get('http://localhost:3000/api/loja/config').catch(() => ({ data: { aberta: true } }))
+          axios.get(`${import.meta.env.VITE_API_URL}/api/categorias`),
+          axios.get(`${import.meta.env.VITE_API_URL}/api/produtos`),
+          axios.get(`${import.meta.env.VITE_API_URL}/api/promo`).catch(() => ({ data: [] })),
+          axios.get(`${import.meta.env.VITE_API_URL}/api/loja/config`).catch(() => ({ data: { aberta: true } }))
         ]);
         
         setLojaAberta(resConfig.data.aberta);
@@ -150,7 +150,7 @@ export default function ClientHome() {
 
       {!lojaAberta && (
         <div className="bg-shaday-red text-white text-center py-2.5 px-4 text-xs sm:text-sm font-bold flex items-center justify-center gap-2 z-40 relative shadow-md">
-          Estamos fechados no momento. Não é possível realizar pedidos.
+          Estamos fechados no momento.
         </div>
       )}
 

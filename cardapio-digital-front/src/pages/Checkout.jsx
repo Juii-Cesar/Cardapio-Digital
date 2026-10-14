@@ -21,11 +21,11 @@ export default function Checkout() {
   const [dadosPix, setDadosPix] = useState({ chave: '', titular: '' });
 
   useEffect(() => {
-    axios.get('http://localhost:3000/api/bairros?apenasAtivo=true')
+    axios.get(`${import.meta.env.VITE_API_URL}/api/bairros?apenasAtivo=true`)
       .then(response => setBairros(response.data))
       .catch(error => console.error("Erro ao carregar bairros:", error));
 
-    axios.get('http://localhost:3000/api/loja/config')
+    axios.get(`${import.meta.env.VITE_API_URL}/api/loja/config`)
       .then(response => {
         setLojaAberta(response.data.aberta);
         setDadosPix({
@@ -107,7 +107,7 @@ export default function Checkout() {
         headers: { Authorization: `Bearer ${token}` }
       };
 
-      await axios.post('http://localhost:3000/api/pedidos', payload, config);
+      await axios.post(`${import.meta.env.VITE_API_URL}/api/pedidos`, payload, config);
       
       if (formaPagamento === 'pix') {
         localStorage.setItem('lembretePix', 'true');
