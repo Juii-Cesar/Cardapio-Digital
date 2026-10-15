@@ -6,14 +6,21 @@ import toast from 'react-hot-toast';
 import AuthModal from '../components/AuthModal';
 
 export default function Checkout() {
-  const { cartItems, clearCart } = useCart();
+  const { cartItems, clearCart, removeFromCart } = useCart();
   const navigate = useNavigate();
+  
   const [bairros, setBairros] = useState([]);
   const [bairroSelecionado, setBairroSelecionado] = useState('');
   const [taxaEntrega, setTaxaEntrega] = useState(0);
   const [rua, setRua] = useState('');
   const [numero, setNumero] = useState('');
   const [complemento, setComplemento] = useState('');
+  
+  const [enderecosSalvos, setEnderecosSalvos] = useState([]);
+  const [enderecoSelecionadoId, setEnderecoSelecionadoId] = useState('');
+  const [usarNovoEndereco, setUsarNovoEndereco] = useState(true);
+  const [observacaoGeral, setObservacaoGeral] = useState('');
+
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lojaAberta, setLojaAberta] = useState(true);
@@ -34,6 +41,23 @@ export default function Checkout() {
         });
       })
       .catch(error => console.error("Erro ao carregar config da loja:", error));
+
+    const token = localStorage.getItem('token');
+    if (token) {
+      axios.get(`${import.meta.env.VITE_API_URL}/api/cliente/enderecos`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      .then(response => {
+        if (response.data && response.data.length > 0) {
+          setEnderecosSalvos(response.data);
+          setUsarNovoEndereco(false);
+          setEnderecoSelecionadoId(response.data[0].id);
+          setBairroSelecionado(response.data[0].id_bairro);
+          setTaxaEntrega(Number(response.data[0].taxa));
+        }
+      })
+      .catch(error => console.error("Erro ao buscar endereços:", error));
+    }
   }, []);
 
   const handleBairroChange = (e) => {
@@ -43,15 +67,28 @@ export default function Checkout() {
     setTaxaEntrega(bairro ? Number(bairro.taxa) : 0);
   };
 
+  const handleSelectEnderecoSalvo = (e) => {
+    const id = e.target.value;
+    setEnderecoSelecionadoId(id);
+    const end = enderecosSalvos.find(x => String(x.id) === String(id));
+    if (end) {
+      setBairroSelecionado(end.id_bairro);
+      setTaxaEntrega(Number(end.taxa));
+    }
+  };
+
   const subtotal = cartItems.reduce((acc, item) => acc + item.precoTotal, 0);
   const totalGeral = subtotal + taxaEntrega;
 
   const handleAvançarParaPagamento = () => {
-    if (!bairroSelecionado || !rua || !numero) {
+    if (usarNovoEndereco && (!bairroSelecionado || !rua || !numero)) {
       toast.error("Por favor, preencha o bairro, rua e número para entrega.");
       return;
     }
-    
+    if (!usarNovoEndereco && !enderecoSelecionadoId) {
+      toast.error("Por favor, selecione um endereço de entrega.");
+      return;
+    }
     if (!formaPagamento) {
       toast.error("Por favor, selecione uma forma de pagamento.");
       return;
@@ -77,7 +114,6 @@ export default function Checkout() {
           quantidade: item.quantidade,
           observacao: item.observacao || (item.ingredientesRemovidos?.length ? `Sem: ${item.ingredientesRemovidos.join(', ')}` : '')
         };
-
         if (item.isPromo) {
           payloadItem.id_promo = item.id;
         } else {
@@ -88,30 +124,27 @@ export default function Checkout() {
 
       const clienteSalvo = JSON.parse(localStorage.getItem('cliente') || '{}');
       const textoPagamento = formaPagamento === 'pix' ? '[PAGAMENTO: PIX]' : '[PAGAMENTO: Cartão na Entrega (Máquina)]';
+      const obsFinal = observacaoGeral ? `${observacaoGeral} | ${textoPagamento}` : textoPagamento;
 
       const payload = {
         cliente: {
           nome: clienteSalvo.nome || 'Cliente',
           tel: clienteSalvo.tel || '',
-          rua,
-          numero,
-          complemento: complemento || '',
-          id_bairro: bairroSelecionado,
+          rua: usarNovoEndereco ? rua : undefined,
+          numero: usarNovoEndereco ? numero : undefined,
+          complemento: usarNovoEndereco ? complemento : undefined,
+          id_bairro: usarNovoEndereco ? bairroSelecionado : undefined,
           cep: ''
         },
+        id_endereco: !usarNovoEndereco ? enderecoSelecionadoId : undefined,
         itens: itensFormatados,
-        observacao_geral: textoPagamento
+        observacao_geral: obsFinal
       };
 
-      const config = {
-        headers: { Authorization: `Bearer ${token}` }
-      };
-
+      const config = { headers: { Authorization: `Bearer ${token}` } };
       await axios.post(`${import.meta.env.VITE_API_URL}/api/pedidos`, payload, config);
       
-      if (formaPagamento === 'pix') {
-        localStorage.setItem('lembretePix', 'true');
-      }
+      if (formaPagamento === 'pix') localStorage.setItem('lembretePix', 'true');
 
       toast.success("Pedido realizado com sucesso!");
       if (clearCart) clearCart();
@@ -119,8 +152,7 @@ export default function Checkout() {
       
     } catch (error) {
       console.error("Erro ao finalizar pedido:", error);
-      toast.error(error.response?.data?.error || "Erro ao enviar pedido. Verifique se a sua sessão expirou.");
-      
+      toast.error(error.response?.data?.error || "Erro ao enviar pedido. Verifique a sua sessão.");
       if (error.response?.status === 401) {
         localStorage.removeItem('token');
         setShowAuthModal(true);
@@ -141,11 +173,13 @@ export default function Checkout() {
     );
   }
 
+  const isFormValid = usarNovoEndereco ? (bairroSelecionado && rua && numero) : enderecoSelecionadoId;
+
   return (
     <div className="min-h-screen bg-shaday-bg text-shaday-text font-sans mx-auto max-w-md shadow-2xl relative pb-52">
       
       <header className="sticky top-0 z-50 bg-shaday-bg border-b border-shaday-card px-4 py-4 flex items-center gap-4">
-        <button onClick={() => window.history.back()} className="text-white hover:text-shaday-red transition-colors font-bold text-xl">←</button>
+        <button onClick={() => navigate('/')} className="text-white hover:text-shaday-red transition-colors font-bold text-xl">←</button>
         <h1 className="text-lg font-bold text-white">Finalizar Pedido</h1>
       </header>
 
@@ -161,9 +195,9 @@ export default function Checkout() {
           <h2 className="text-white font-medium mb-4 border-b border-white/10 pb-2">Itens do Pedido</h2>
           <div className="flex flex-col gap-4">
             {cartItems.map((item, index) => (
-              <div key={index} className="flex justify-between items-start gap-3">
+              <div key={index} className="flex justify-between items-start gap-3 relative">
                 <div className="flex text-shaday-muted font-medium w-6 shrink-0">{item.quantidade}x</div>
-                <div className="flex-1">
+                <div className="flex-1 pr-6">
                   <p className="text-white text-sm font-medium">{item.nome}</p>
                   {item.ingredientesRemovidos?.length > 0 && (
                     <p className="text-xs text-shaday-red mt-1">Sem: {item.ingredientesRemovidos.join(', ')}</p>
@@ -171,6 +205,12 @@ export default function Checkout() {
                   {item.observacao && (
                     <p className="text-xs text-white/50 italic mt-1 bg-black/20 p-1.5 rounded">"{item.observacao}"</p>
                   )}
+                  <button 
+                    onClick={() => removeFromCart(index)} 
+                    className="text-[10px] text-shaday-red/70 mt-2 font-bold uppercase tracking-wider hover:text-shaday-red block"
+                  >
+                    Remover
+                  </button>
                 </div>
                 <div className="text-white font-medium text-sm shrink-0">
                   R$ {item.precoTotal.toFixed(2).replace('.', ',')}
@@ -182,39 +222,84 @@ export default function Checkout() {
 
         <section className="bg-shaday-card p-4 rounded-xl border border-white/5 shadow-sm">
           <h2 className="text-white font-medium mb-4 border-b border-white/10 pb-2">Local de Entrega</h2>
-          <div className="flex flex-col gap-4">
-            <div>
-              <label className="block text-sm text-shaday-muted mb-2 ml-1">Bairro</label>
-              <select 
-                value={bairroSelecionado}
-                onChange={handleBairroChange}
-                className="w-full bg-[#121212] border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-shaday-red appearance-none"
-              >
-                <option value="">Selecione o seu bairro...</option>
-                {bairros.map(b => (
-                  <option key={b.id} value={b.id}>
-                    {b.nome_bairro} (Taxa: R$ {Number(b.taxa).toFixed(2).replace('.', ',')})
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            <div className="flex gap-3">
-              <div className="flex-1">
-                <label className="block text-sm text-shaday-muted mb-2 ml-1">Rua</label>
-                <input type="text" value={rua} onChange={e => setRua(e.target.value)} className="w-full bg-[#121212] border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-shaday-red" placeholder="Nome da rua" />
+          
+          {enderecosSalvos.length > 0 && (
+            <div className="mb-4">
+              <div className="flex gap-4 mb-3 border border-white/5 bg-[#121212] p-2 rounded-xl">
+                <label className="flex-1 flex items-center justify-center gap-2 text-sm text-white cursor-pointer select-none">
+                  <input type="radio" checked={!usarNovoEndereco} onChange={() => setUsarNovoEndereco(false)} className="accent-shaday-red" />
+                  Salvo
+                </label>
+                <div className="w-px bg-white/10"></div>
+                <label className="flex-1 flex items-center justify-center gap-2 text-sm text-white cursor-pointer select-none">
+                  <input type="radio" checked={usarNovoEndereco} onChange={() => setUsarNovoEndereco(true)} className="accent-shaday-red" />
+                  Novo
+                </label>
               </div>
-              <div className="w-24 shrink-0">
-                <label className="block text-sm text-shaday-muted mb-2 ml-1">Nº</label>
-                <input type="text" value={numero} onChange={e => setNumero(e.target.value)} className="w-full bg-[#121212] border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-shaday-red" placeholder="123" />
-              </div>
-            </div>
 
-            <div>
-              <label className="block text-sm text-shaday-muted mb-2 ml-1">Complemento (opcional)</label>
-              <input type="text" value={complemento} onChange={e => setComplemento(e.target.value)} className="w-full bg-[#121212] border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-shaday-red" placeholder="Apto 101, Bloco B..." />
+              {!usarNovoEndereco && (
+                <select 
+                  value={enderecoSelecionadoId} 
+                  onChange={handleSelectEnderecoSalvo}
+                  className="w-full bg-[#121212] border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-shaday-red"
+                >
+                  <option value="" disabled>Selecione um endereço...</option>
+                  {enderecosSalvos.map(end => (
+                    <option key={end.id} value={end.id}>
+                      {end.apelido ? `${end.apelido}: ` : ''}{end.rua}, {end.numero}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
-          </div>
+          )}
+
+          {usarNovoEndereco && (
+            <div className="flex flex-col gap-4 animate-slide-up">
+              <div>
+                <label className="block text-sm text-shaday-muted mb-2 ml-1">Bairro</label>
+                <select 
+                  value={bairroSelecionado}
+                  onChange={handleBairroChange}
+                  className="w-full bg-[#121212] border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-shaday-red appearance-none"
+                >
+                  <option value="">Selecione o seu bairro...</option>
+                  {bairros.map(b => (
+                    <option key={b.id} value={b.id}>
+                      {b.nome_bairro} (Taxa: R$ {Number(b.taxa).toFixed(2).replace('.', ',')})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label className="block text-sm text-shaday-muted mb-2 ml-1">Rua</label>
+                  <input type="text" value={rua} onChange={e => setRua(e.target.value)} className="w-full bg-[#121212] border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-shaday-red" placeholder="Nome da rua" />
+                </div>
+                <div className="w-24 shrink-0">
+                  <label className="block text-sm text-shaday-muted mb-2 ml-1">Nº</label>
+                  <input type="text" value={numero} onChange={e => setNumero(e.target.value)} className="w-full bg-[#121212] border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-shaday-red" placeholder="123" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm text-shaday-muted mb-2 ml-1">Complemento (opcional)</label>
+                <input type="text" value={complemento} onChange={e => setComplemento(e.target.value)} className="w-full bg-[#121212] border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-shaday-red" placeholder="Apto 101, Bloco B..." />
+              </div>
+            </div>
+          )}
+        </section>
+
+        <section className="bg-shaday-card p-4 rounded-xl border border-white/5 shadow-sm">
+          <h2 className="text-white font-medium mb-4 border-b border-white/10 pb-2">Observação Geral (Opcional)</h2>
+          <textarea 
+            value={observacaoGeral}
+            onChange={e => setObservacaoGeral(e.target.value)}
+            placeholder="Ex: Preciso de troco para 50, favor não tocar a campainha..."
+            className="w-full bg-[#121212] border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-shaday-red resize-none"
+            rows="2"
+          ></textarea>
         </section>
 
         <section className="bg-shaday-card p-4 rounded-xl border border-white/5 shadow-sm">
@@ -229,7 +314,7 @@ export default function Checkout() {
             </label>
 
             {formaPagamento === 'pix' && dadosPix.chave && (
-              <div className="ml-7 p-3 bg-black/40 rounded-lg border border-white/5">
+              <div className="ml-7 p-3 bg-black/40 rounded-lg border border-white/5 animate-slide-up">
                 <p className="text-xs text-shaday-muted mb-1">Chave PIX:</p>
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-green-400 font-mono text-sm break-all">{dadosPix.chave}</span>
@@ -243,11 +328,6 @@ export default function Checkout() {
                   >
                     Copiar
                   </button>
-                  <div className="mt-3 p-2 bg-shaday-red/10 border border-shaday-red/20 rounded text-center">
-                    <p className="text-[11px] text-shaday-red font-medium leading-tight">
-                        O pedido só começará a ser preparado após a confirmação do pagamento.
-                    </p>
-                  </div>
                 </div>
                 {dadosPix.titular && <p className="text-xs text-shaday-muted mt-2">Titular: {dadosPix.titular}</p>}
               </div>
@@ -284,11 +364,11 @@ export default function Checkout() {
 
           <button 
             className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all flex justify-center items-center gap-2 ${
-              lojaAberta && bairroSelecionado && rua && numero && formaPagamento && !isSubmitting
+              lojaAberta && isFormValid && formaPagamento && !isSubmitting
                 ? 'bg-shaday-red text-white hover:bg-red-700 active:scale-[0.98]' 
                 : 'bg-white/10 text-white/40 cursor-not-allowed'
             }`}
-            disabled={!lojaAberta || !bairroSelecionado || !rua || !numero || !formaPagamento || isSubmitting}
+            disabled={!lojaAberta || !isFormValid || !formaPagamento || isSubmitting}
             onClick={() => !lojaAberta ? toast.error("A loja está fechada.") : handleAvançarParaPagamento()}
           >
             {!lojaAberta ? 'Restaurante Fechado' : isSubmitting ? 'Processando...' : 'Confirmar Pedido'}

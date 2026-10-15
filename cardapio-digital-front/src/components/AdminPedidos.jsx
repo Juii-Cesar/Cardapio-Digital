@@ -7,6 +7,7 @@ export default function AdminPedidos() {
   const [pedidos, setPedidos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filtroMobile, setFiltroMobile] = useState('Pendente');
+  const [ocultarConcluidos, setOcultarConcluidos] = useState(false);
 
   const quantidadePendentesRef = useRef(0);
   const primeiraCarga = useRef(true);
@@ -67,18 +68,16 @@ export default function AdminPedidos() {
       }, config);
       
       setFiltroMobile(novoStatus); 
-      
       fetchPedidos(); 
       toast.success("Status do pedido atualizado!");
     } catch (error) {
       console.error("Erro ao atualizar status:", error);
-      toast.error("Erro ao mover o pedido. Verifique o backend.");
+      toast.error("Erro ao mover o pedido.");
     }
   };
 
   const handleImprimirPedido = (pedido) => {
     const janelaImpressao = window.open('', '', 'width=400,height=600');
-    
     const conteudoTalao = `
       <html>
         <head>
@@ -96,17 +95,13 @@ export default function AdminPedidos() {
             <p style="margin:5px 0;">Pedido #${String(pedido.id_pedido).substring(0,6).toUpperCase()}</p>
             <p style="margin:5px 0;">Data: ${new Date(pedido.criado_em.includes('Z') ? pedido.criado_em : `${pedido.criado_em}Z`).toLocaleTimeString('pt-BR')}</p>
           </div>
-          
           <div class="divider"></div>
-          
           <p class="bold">CLIENTE: ${pedido.cliente_nome}</p>
           <p>Tel: ${pedido.cliente_tel}</p>
           <p>Endereço: ${pedido.rua}, ${pedido.numero}</p>
           ${pedido.complemento ? `<p>Comp: ${pedido.complemento}</p>` : ''}
           <p>Bairro: ${pedido.nome_bairro}</p>
-          
           <div class="divider"></div>
-          
           <p class="bold">ITENS DO PEDIDO:</p>
           ${pedido.itens.map(item => `
             <div class="flex-between">
@@ -115,36 +110,32 @@ export default function AdminPedidos() {
             </div>
             ${item.observacao ? `<small style="display:block; margin-bottom:5px;">Obs: ${item.observacao}</small>` : ''}
           `).join('')}
-          
           <div class="divider"></div>
-          
           ${pedido.observacao_geral ? `
             <p class="bold">OBSERVAÇÕES DO PEDIDO:</p>
             <p>${pedido.observacao_geral}</p>
             <div class="divider"></div>
           ` : ''}
-
           <div class="flex-between bold" style="font-size: 14px;">
             <span>TOTAL:</span>
             <span>R$ ${Number(pedido.total).toFixed(2).replace('.', ',')}</span>
           </div>
-          
           <div class="center" style="margin-top: 20px;">
             <p>Obrigado pela preferência!</p>
           </div>
-          
           <script>
             window.onload = function() { window.print(); window.close(); }
           </script>
         </body>
       </html>
     `;
-
     janelaImpressao.document.write(conteudoTalao);
     janelaImpressao.document.close();
   };
 
   const renderColuna = (titulo, statusFiltro) => {
+    if (statusFiltro === 'Concluido' && ocultarConcluidos) return null;
+
     let filtrados = pedidos.filter(p => p.status === statusFiltro);
     let ocultos = 0;
 
@@ -155,7 +146,6 @@ export default function AdminPedidos() {
     
     return (
       <div className={`flex-1 min-w-[280px] w-full md:w-auto flex-col gap-3 bg-[#121212]/50 rounded-xl p-2 border border-white/5 ${filtroMobile === statusFiltro ? 'flex' : 'hidden md:flex'}`}>
-        
         <div className="flex items-center justify-between p-2 mb-1 border-b border-white/5">
           <h3 className="text-white font-bold text-sm">{titulo}</h3>
           <span className="bg-white/10 text-white text-xs px-2.5 py-1 rounded-full font-bold">
@@ -171,14 +161,11 @@ export default function AdminPedidos() {
           <>
             {filtrados.map(pedido => {
               const isCancelado = statusFiltro === 'Cancelado';
-
               return (
                 <div 
                   key={pedido.id_pedido} 
                   className={`border rounded-xl p-4 shadow-sm flex flex-col gap-3 transition-all animate-slide-up relative overflow-hidden ${
-                    isCancelado 
-                      ? 'bg-[#180a0a] border-shaday-red/20 opacity-70' 
-                      : 'bg-shaday-card border-white/10 hover:border-white/20'
+                    isCancelado ? 'bg-[#180a0a] border-shaday-red/20 opacity-70' : 'bg-shaday-card border-white/10 hover:border-white/20'
                   }`}
                 >
                   <div className="flex justify-between items-start border-b border-white/5 pb-3">
@@ -187,7 +174,6 @@ export default function AdminPedidos() {
                           #{String(pedido.id_pedido).substring(0,6).toUpperCase()}
                         </span>
                         <h4 className="text-white font-bold text-base mt-1">{pedido.cliente_nome}</h4>
-                        
                         <div className="text-shaday-muted text-xs mt-1 leading-relaxed bg-black/20 p-2 rounded-lg border border-white/5">
                           {pedido.rua ? (
                             <>
@@ -200,14 +186,13 @@ export default function AdminPedidos() {
                             <span>{pedido.nome_bairro} <span className="text-white/30 italic">(Endereço pendente)</span></span>
                           )}
                         </div>
-                        
                         <p className="text-white/60 text-xs mt-2 font-mono tracking-wide flex items-center gap-1"> 
                           {pedido.cliente_tel}
                         </p>
                     </div>
                     <span className="text-shaday-muted text-[10px] bg-black/30 px-2 py-1 rounded shrink-0 ml-2">
                         {new Date(pedido.criado_em.includes('Z') ? pedido.criado_em : `${pedido.criado_em}Z`).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}
-                      </span>
+                    </span>
                   </div>
                   
                   <div className="flex flex-col gap-2 py-1">
@@ -215,7 +200,6 @@ export default function AdminPedidos() {
                       <div key={idx} className="leading-relaxed">
                         <span className="text-white/50 font-bold text-sm">{item.quantidade}x </span>
                         <span className="text-white/90 text-sm font-medium">{item.produto_nome || item.promo_nome}</span>
-                        
                         {item.observacao && (
                           <p className="text-shaday-red font-medium text-xs pl-5 mt-0.5 italic bg-shaday-red/5 p-1 rounded inline-block w-full">
                             ↳ {item.observacao}
@@ -227,7 +211,6 @@ export default function AdminPedidos() {
                     {(() => {
                       const isPix = pedido.observacao_geral?.includes('PIX');
                       const isMaquineta = pedido.observacao_geral?.includes('Máquina') || pedido.observacao_geral?.includes('Maquineta');
-                      
                       let obsLimpa = pedido.observacao_geral || '';
                       obsLimpa = obsLimpa.replace(/\[PAGAMENTO:.*?\]/g, '').trim();
 
@@ -235,14 +218,11 @@ export default function AdminPedidos() {
                         <div className="mt-2 flex flex-col gap-2">
                           {(isPix || isMaquineta) && (
                             <div className={`inline-flex w-fit px-3 py-1.5 rounded-lg text-xs font-bold border shadow-sm ${
-                              isPix 
-                                ? 'bg-green-500/10 text-green-400 border-green-500/30' 
-                                : 'bg-blue-500/10 text-blue-400 border-blue-500/30'
+                              isPix ? 'bg-green-500/10 text-green-400 border-green-500/30' : 'bg-blue-500/10 text-blue-400 border-blue-500/30'
                             }`}>
                               {isPix ? 'PAGAMENTO: PIX' : 'PAGAMENTO: MÁQUINA'}
                             </div>
                           )}
-                          
                           {obsLimpa && (
                             <div className="p-3 bg-black/40 rounded-lg text-sm text-white/90 italic border-l-2 border-shaday-red">
                               "{obsLimpa}"
@@ -263,14 +243,9 @@ export default function AdminPedidos() {
                         className="transition-colors bg-white/5 hover:bg-white/10 p-1.5 rounded flex items-center justify-center"
                         title="Imprimir Pedido"
                       >
-                        <img 
-                          src={impressoraIcon} 
-                          alt="Imprimir" 
-                          className="w-5 h-5 invert opacity-60 hover:opacity-100 transition-opacity" 
-                        />
+                        <img src={impressoraIcon} alt="Imprimir" className="w-5 h-5 invert opacity-60 hover:opacity-100 transition-opacity" />
                       </button>
                     </div>
-                    
                     <div className="flex gap-2 justify-end mt-1">
                       {(!isCancelado && statusFiltro !== 'Concluido') && (
                         <button 
@@ -291,7 +266,6 @@ export default function AdminPedidos() {
                           Cancelar
                         </button>
                       )}
-
                       {(!isCancelado && statusFiltro !== 'Concluido') && (
                         <button 
                           onClick={() => handleAvancarStatus(pedido)} 
@@ -305,7 +279,6 @@ export default function AdminPedidos() {
                 </div>
               );
             })}
-            
             {ocultos > 0 && (
               <div className="text-center py-2 mt-1">
                 <span className="text-[10px] text-white/30 uppercase tracking-widest font-bold">
@@ -329,37 +302,41 @@ export default function AdminPedidos() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-6rem)]">
-      
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
            <h2 className="text-white font-bold text-2xl">Gestão de Pedidos</h2>
            <p className="text-shaday-muted text-sm mt-1">Acompanhe os pedidos em tempo real.</p>
         </div>
-        <button 
-          onClick={fetchPedidos} 
-          className="flex items-center justify-center w-full sm:w-auto gap-2 bg-shaday-red/20 text-shaday-red hover:bg-shaday-red hover:text-white px-4 py-2 rounded-xl text-sm font-bold transition-colors border border-shaday-red/30"
-        >
-          {loading ? 'A carregar...' : '↻ Atualizar Agora'}
-        </button>
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <button 
+            onClick={() => setOcultarConcluidos(!ocultarConcluidos)}
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-white/5 text-white hover:bg-white/10 px-4 py-2 rounded-xl text-sm font-bold transition-colors border border-white/10"
+          >
+            {ocultarConcluidos ? 'Mostrar Concluídos' : 'Ocultar Concluídos'}
+          </button>
+          <button 
+            onClick={fetchPedidos} 
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-shaday-red/20 text-shaday-red hover:bg-shaday-red hover:text-white px-4 py-2 rounded-xl text-sm font-bold transition-colors border border-shaday-red/30"
+          >
+            {loading ? 'A carregar...' : '↻ Atualizar'}
+          </button>
+        </div>
       </div>
       
       <div className="md:hidden flex overflow-x-auto gap-2 pb-2 mb-4 [&::-webkit-scrollbar]:hidden shrink-0">
         {abasMobile.map(aba => {
+          if (aba.id === 'Concluido' && ocultarConcluidos) return null;
           const quantidade = pedidos.filter(p => p.status === aba.id).length;
           return (
             <button
               key={aba.id}
               onClick={() => setFiltroMobile(aba.id)}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl whitespace-nowrap text-sm font-bold transition-colors border ${
-                filtroMobile === aba.id 
-                  ? 'bg-shaday-red border-shaday-red text-white shadow-md' 
-                  : 'bg-[#121212] border-white/5 text-shaday-muted hover:bg-white/5'
+                filtroMobile === aba.id ? 'bg-shaday-red border-shaday-red text-white shadow-md' : 'bg-[#121212] border-white/5 text-shaday-muted hover:bg-white/5'
               }`}
             >
               {aba.label}
-              <span className={`px-2 py-0.5 rounded-full text-[10px] ${
-                filtroMobile === aba.id ? 'bg-white/20 text-white' : 'bg-white/5 text-white/50'
-              }`}>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] ${filtroMobile === aba.id ? 'bg-white/20 text-white' : 'bg-white/5 text-white/50'}`}>
                 {quantidade}
               </span>
             </button>
@@ -374,7 +351,6 @@ export default function AdminPedidos() {
          {renderColuna('Concluídos', 'Concluido')}
          {renderColuna('Cancelados', 'Cancelado')}
       </div>
-
     </div>
   );
 }
