@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 
 //cria pedidoo completo com usuario, endereço e itens do carrinho
 const createOrder = async (req, res) => {
+  
   const authHeader = req.headers["authorization"];
   let userIdFromToken = null;
 
@@ -11,36 +12,44 @@ const createOrder = async (req, res) => {
     try {
       const token = authHeader.split(" ")[1];
       if (token) {
-        const secret = process.env.JWT_SECRET;
+        const secret = process.env.JWT_SECRET || "secreta_cardapio_2026";
         const decoded = jwt.verify(token, secret);
         userIdFromToken = decoded.id;
       }
     } catch (err) {
       console.error(
-        "Token enviado no pedido é inválido ou expirou:",
+        "Token do cliente no pedido é inválido/expirado:",
         err.message,
       );
     }
   }
 
-  const cliente = req.body.cliente || {};
-  const { nome, tel, senha, rua, numero, complemento, id_bairro, cep } =
-    cliente;
-  const { itens, observacao_geral } = req.body;
+  const {
+    id_endereco, 
+    cliente = {},
+    itens,
+    observacao_geral,
+  } = req.body;
 
-  // Validação de entrada
-  if (!nome || !rua || !numero || !id_bairro) {
-    return res
-      .status(400)
-      .json({ error: "Dados do cliente, endereço e bairro são obrigatórios." });
-  }
+  const {
+    nome,
+    tel,
+    senha,
+    rua,
+    numero,
+    complemento,
+    id_bairro,
+    cep,
+    apelido,
+  } = cliente;
 
-  if (!userIdFromToken && (!tel || !senha)) {
+ 
+  if (!userIdFromToken && (!nome || !tel || !senha)) {
     return res
       .status(400)
       .json({
         error:
-          "Telefone e senha são obrigatórios para finalizar o pedido sem login prévio.",
+          "Nome, telefone e senha são obrigatórios para realizar o pedido sem login prévio.",
       });
   }
 
@@ -55,10 +64,10 @@ const createOrder = async (req, res) => {
   try {
     await client.query("BEGIN");
 
+    
     const shopCheck = await client.query(
       "SELECT aberta FROM config_loja WHERE id = 1",
     );
-    
     if (shopCheck.rows.length > 0 && !shopCheck.rows[0].aberta) {
       await client.query("ROLLBACK");
       client.release();
@@ -70,22 +79,7 @@ const createOrder = async (req, res) => {
         });
     }
 
-    const neighborhoodResult = await client.query(
-      "SELECT taxa FROM taxas_entrega WHERE id = $1 AND ativo = true",
-      [id_bairro],
-    );
-
-    if (neighborhoodResult.rows.length === 0) {
-      await client.query("ROLLBACK");
-      client.release();
-      return res
-        .status(400)
-        .json({ error: "Bairro selecionado é invalido ou não está ativo" });
-    }
-
-    const taxaEntrega = parseFloat(neighborhoodResult.rows[0].taxa);
-
-    //Cadastra ou recupera o Usuário validando a Senha
+    
     let userId;
 
     if (userIdFromToken) {
@@ -132,12 +126,77 @@ const createOrder = async (req, res) => {
       }
     }
 
-    await client.query(
-      `INSERT INTO usuario_end (id_usuario, id_bairro, rua, numero, complemento, cep)
-            VALUES ($1, $2, $3, $4, $5, $6)`,
-      [userId, id_bairro, rua, numero, complemento || null, cep || null],
+   
+    let addressId = id_endereco;
+    let selectedBairroId = id_bairro;
+
+    if (addressId) {
+      
+      const addrResult = await client.query(
+        "SELECT id_bairro FROM usuario_end WHERE id = $1 AND id_usuario = $2 AND ativo = true",
+        [addressId, userId],
+      );
+
+      if (addrResult.rows.length === 0) {
+        await client.query("ROLLBACK");
+        client.release();
+        return res
+          .status(400)
+          .json({
+            error:
+              "Endereço selecionado é inválido ou não pertence ao usuário.",
+          });
+      }
+
+      selectedBairroId = addrResult.rows[0].id_bairro;
+    } else {
+      
+      if (!rua || !numero || !id_bairro) {
+        await client.query("ROLLBACK");
+        client.release();
+        return res
+          .status(400)
+          .json({
+            error:
+              "Rua, número e bairro são obrigatórios para cadastrar um novo endereço.",
+          });
+      }
+
+      const newAddrResult = await client.query(
+        `INSERT INTO usuario_end (id_usuario, id_bairro, rua, numero, complemento, cep, apelido)
+         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+        [
+          userId,
+          id_bairro,
+          rua,
+          numero,
+          complemento || null,
+          cep || null,
+          apelido || "Entrega",
+        ],
+      );
+
+      addressId = newAddrResult.rows[0].id;
+      selectedBairroId = id_bairro;
+    }
+
+   
+    const neighborhoodResult = await client.query(
+      "SELECT taxa FROM taxas_entrega WHERE id = $1 AND ativo = true",
+      [selectedBairroId],
     );
 
+    if (neighborhoodResult.rows.length === 0) {
+      await client.query("ROLLBACK");
+      client.release();
+      return res
+        .status(400)
+        .json({ error: "Bairro selecionado é inválido ou não está ativo." });
+    }
+
+    const taxaEntrega = parseFloat(neighborhoodResult.rows[0].taxa);
+
+   
     let subtotal = 0;
     const itensProcessados = [];
 
@@ -156,21 +215,26 @@ const createOrder = async (req, res) => {
           client.release();
           return res
             .status(400)
-            .json({ error: "Produto selecionado não está disponivel." });
+            .json({
+              error: "Um dos produtos selecionados não está disponível.",
+            });
         }
 
         precoUnitario = parseFloat(prodResult.rows[0].preco);
       } else if (item.id_promo) {
         const promoResult = await client.query(
-          "SELECT preco,ativo FROM promo WHERE id=$1",
+          "SELECT preco, ativo FROM promo WHERE id = $1",
           [item.id_promo],
         );
+
         if (promoResult.rows.length === 0 || !promoResult.rows[0].ativo) {
           await client.query("ROLLBACK");
           client.release();
           return res
             .status(400)
-            .json({ error: "combo/promoção nao esta disponivel." });
+            .json({
+              error: "Uma das promoções selecionadas não está disponível.",
+            });
         }
 
         precoUnitario = parseFloat(promoResult.rows[0].preco);
@@ -180,7 +244,7 @@ const createOrder = async (req, res) => {
         return res
           .status(400)
           .json({
-            error: "Item do pedido deve conter um id_produto ou id_promo",
+            error: "Cada item do pedido deve conter id_produto ou id_promo.",
           });
       }
 
@@ -191,23 +255,33 @@ const createOrder = async (req, res) => {
         id_promo: item.id_promo || null,
         quantidade: qtd,
         observacao: item.observacao || null,
-        preco_unitario: precoUnitario, // Preço capturado com segurança do banco
+        preco_unitario: precoUnitario,
       });
     }
+
     const totalGeral = subtotal + taxaEntrega;
 
+  
     const orderResult = await client.query(
-      `INSERT INTO pedidos (id_usuario, id_bairro, status, taxa_entrega_aplicada, total, observacao)
-            VALUES ($1, $2, 'Pendente', $3, $4, $5) RETURNING *`,
-      [userId, id_bairro, taxaEntrega, totalGeral, observacao_geral || null],
+      `INSERT INTO pedidos (id_usuario, id_bairro, id_endereco, status, taxa_entrega_aplicada, total, observacao)
+       VALUES ($1, $2, $3, 'Pendente', $4, $5, $6) RETURNING *`,
+      [
+        userId,
+        selectedBairroId,
+        addressId,
+        taxaEntrega,
+        totalGeral,
+        observacao_geral || null,
+      ],
     );
 
     const newOrder = orderResult.rows[0];
 
+
     for (const item of itensProcessados) {
       await client.query(
         `INSERT INTO itens_pedidos (id_pedido, id_produto, id_promo, quantidade, observacao, preco_unitario)
-                VALUES ($1, $2, $3, $4, $5, $6)`,
+         VALUES ($1, $2, $3, $4, $5, $6)`,
         [
           newOrder.id,
           item.id_produto,
@@ -223,7 +297,7 @@ const createOrder = async (req, res) => {
     client.release();
 
     return res.status(201).json({
-      message: "Pedido Realizado com sucesso!",
+      message: "Pedido realizado com sucesso!",
       order: newOrder,
     });
   } catch (error) {
@@ -231,15 +305,13 @@ const createOrder = async (req, res) => {
       await client.query("ROLLBACK");
       client.release();
     } catch (rollbackErr) {
-      console.error("Erro ao fazer rollback:", rollbackErr);
+      console.error("Erro ao executar rollback:", rollbackErr);
     }
 
-    console.error(" ERRO DETALHADO NA TRANSAÇÃO:", error);
-
+    console.error(" Erro na transação do pedido:", error);
     return res.status(500).json({
-      error: "Erro interno ao processar pedido",
-      mensagem: error.message,
-      detalhes: error.stack,
+      error: "Erro interno ao processar pedido.",
+      detalhes: error.message,
     });
   }
 };
@@ -265,7 +337,7 @@ const getOrders = async (req,res)=>{
             FROM pedidos p
             JOIN usuarios u ON p.id_usuario = u.id
             JOIN taxas_entrega te ON p.id_bairro = te.id
-            LEFT JOIN usuario_end ue ON ue.id_usuario = p.id_usuario AND ue.id_bairro = p.id_bairro
+            LEFT JOIN usuario_end ue ON p.id_endereco = ue.id
             ORDER BY p.id, p.criado_em DESC
         `,
         );
@@ -367,7 +439,7 @@ const getClientOrders = async (req, res) => {
 
     // DISTINCT ON (p.id) evita duplicatas quando o usuário tem múltiplos endereços
     const ordersResult = await db.query(
-      `SELECT DISTINCT ON (p.id)
+      `SELECT 
         p.id AS id_pedido,
         p.status,
         p.taxa_entrega_aplicada,
@@ -378,13 +450,14 @@ const getClientOrders = async (req, res) => {
         ue.rua,
         ue.numero,
         ue.complemento,
-        ue.cep
+        ue.cep,
+        ue.apelido
       FROM pedidos p
       JOIN taxas_entrega te ON p.id_bairro = te.id
-      LEFT JOIN usuario_end ue ON ue.id_usuario = p.id_usuario AND ue.id_bairro = p.id_bairro
+      LEFT JOIN usuario_end ue ON p.id_endereco = ue.id  -- <- Vínculo direto e exato pelo ID do endereço!
       WHERE p.id_usuario = $1
-      ORDER BY p.id, p.criado_em DESC`,
-      [id_usuario]
+      ORDER BY p.criado_em DESC`,
+      [id_usuario],
     );
 
     const orders = ordersResult.rows;
