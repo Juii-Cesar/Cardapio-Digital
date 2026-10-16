@@ -82,16 +82,18 @@ export default function AdminPedidos() {
       <html>
         <head>
           <style>
-            body { font-family: monospace; width: 300px; margin: 0 auto; padding: 10px; font-size: 12px; color: #000; }
+            @page { margin: 0; } /* Isso remove o about:blank e as datas do topo/rodapé */
+            body { font-family: monospace; width: 300px; margin: 0 auto; padding: 15px; font-size: 16px; color: #000; }
             .center { text-align: center; }
-            .divider { border-bottom: 1px dashed #000; margin: 10px 0; }
+            .divider { border-bottom: 1px dashed #000; margin: 15px 0; }
             .bold { font-weight: bold; }
             .flex-between { display: flex; justify-content: space-between; }
+            h2 { font-size: 22px; margin: 0; }
           </style>
         </head>
         <body>
           <div class="center">
-            <h2 style="margin:0;">SUSHI SHADAY</h2>
+            <h2>SUSHI SHADAY</h2>
             <p style="margin:5px 0;">Pedido #${String(pedido.id_pedido).substring(0,6).toUpperCase()}</p>
             <p style="margin:5px 0;">Data: ${new Date(pedido.criado_em.includes('Z') ? pedido.criado_em : `${pedido.criado_em}Z`).toLocaleTimeString('pt-BR')}</p>
           </div>
@@ -108,19 +110,19 @@ export default function AdminPedidos() {
               <span>${item.quantidade}x${item.produto_nome || item.promo_nome}</span>
               <span>R$ ${item.preco_unitario}</span>
             </div>
-            ${item.observacao ? `<small style="display:block; margin-bottom:5px;">Obs: ${item.observacao}</small>` : ''}
+            ${item.observacao ? `<small style="display:block; margin-bottom:5px; font-size: 14px;">Obs: ${item.observacao}</small>` : ''}
           `).join('')}
           <div class="divider"></div>
           ${pedido.observacao_geral ? `
             <p class="bold">OBSERVAÇÕES DO PEDIDO:</p>
-            <p>${pedido.observacao_geral}</p>
+            <p style="font-size: 15px;">${pedido.observacao_geral}</p>
             <div class="divider"></div>
           ` : ''}
-          <div class="flex-between bold" style="font-size: 14px;">
+          <div class="flex-between bold" style="font-size: 18px;">
             <span>TOTAL:</span>
             <span>R$ ${Number(pedido.total).toFixed(2).replace('.', ',')}</span>
           </div>
-          <div class="center" style="margin-top: 20px;">
+          <div class="center" style="margin-top: 25px;">
             <p>Obrigado pela preferência!</p>
           </div>
           <script>

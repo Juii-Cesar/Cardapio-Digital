@@ -4,6 +4,7 @@ import { useCart } from '../contexts/CartContext';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import AuthModal from '../components/AuthModal';
+import trashIcon from '../assets/trash.png';
 
 export default function Checkout() {
   const { cartItems, clearCart, removeFromCart } = useCart();
@@ -15,6 +16,7 @@ export default function Checkout() {
   const [rua, setRua] = useState('');
   const [numero, setNumero] = useState('');
   const [complemento, setComplemento] = useState('');
+  const [apelido, setApelido] = useState('');
   
   const [enderecosSalvos, setEnderecosSalvos] = useState([]);
   const [enderecoSelecionadoId, setEnderecoSelecionadoId] = useState('');
@@ -40,7 +42,7 @@ export default function Checkout() {
           titular: response.data.titular_pix || ''
         });
       })
-      .catch(error => console.error("Erro ao carregar config da loja:", error));
+      .catch(error => console.error("Erro ao carregar config:", error));
 
     const token = localStorage.getItem('token');
     if (token) {
@@ -82,11 +84,11 @@ export default function Checkout() {
 
   const handleAvançarParaPagamento = () => {
     if (usarNovoEndereco && (!bairroSelecionado || !rua || !numero)) {
-      toast.error("Por favor, preencha o bairro, rua e número para entrega.");
+      toast.error("Por favor, preencha o bairro, rua e número.");
       return;
     }
     if (!usarNovoEndereco && !enderecoSelecionadoId) {
-      toast.error("Por favor, selecione um endereço de entrega.");
+      toast.error("Por favor, selecione um endereço.");
       return;
     }
     if (!formaPagamento) {
@@ -95,7 +97,6 @@ export default function Checkout() {
     }
     
     const token = localStorage.getItem('token');
-    
     if (!token) {
       toast.error("Faça login ou crie uma conta para finalizar.");
       setShowAuthModal(true);
@@ -114,11 +115,8 @@ export default function Checkout() {
           quantidade: item.quantidade,
           observacao: item.observacao || (item.ingredientesRemovidos?.length ? `Sem: ${item.ingredientesRemovidos.join(', ')}` : '')
         };
-        if (item.isPromo) {
-          payloadItem.id_promo = item.id;
-        } else {
-          payloadItem.id_produto = item.id;
-        }
+        if (item.isPromo) payloadItem.id_promo = item.id;
+        else payloadItem.id_produto = item.id;
         return payloadItem;
       });
 
@@ -134,6 +132,7 @@ export default function Checkout() {
           numero: usarNovoEndereco ? numero : undefined,
           complemento: usarNovoEndereco ? complemento : undefined,
           id_bairro: usarNovoEndereco ? bairroSelecionado : undefined,
+          apelido: usarNovoEndereco ? (apelido || 'Meu Endereço') : undefined,
           cep: ''
         },
         id_endereco: !usarNovoEndereco ? enderecoSelecionadoId : undefined,
@@ -152,7 +151,7 @@ export default function Checkout() {
       
     } catch (error) {
       console.error("Erro ao finalizar pedido:", error);
-      toast.error(error.response?.data?.error || "Erro ao enviar pedido. Verifique a sua sessão.");
+      toast.error(error.response?.data?.error || "Erro ao enviar pedido.");
       if (error.response?.status === 401) {
         localStorage.removeItem('token');
         setShowAuthModal(true);
@@ -197,7 +196,7 @@ export default function Checkout() {
             {cartItems.map((item, index) => (
               <div key={index} className="flex justify-between items-start gap-3 relative">
                 <div className="flex text-shaday-muted font-medium w-6 shrink-0">{item.quantidade}x</div>
-                <div className="flex-1 pr-6">
+                <div className="flex-1 pr-2">
                   <p className="text-white text-sm font-medium">{item.nome}</p>
                   {item.ingredientesRemovidos?.length > 0 && (
                     <p className="text-xs text-shaday-red mt-1">Sem: {item.ingredientesRemovidos.join(', ')}</p>
@@ -205,15 +204,16 @@ export default function Checkout() {
                   {item.observacao && (
                     <p className="text-xs text-white/50 italic mt-1 bg-black/20 p-1.5 rounded">"{item.observacao}"</p>
                   )}
+                </div>
+                <div className="flex flex-col items-end gap-2 shrink-0">
+                  <span className="text-white font-medium text-sm">R$ {item.precoTotal.toFixed(2).replace('.', ',')}</span>
                   <button 
                     onClick={() => removeFromCart(index)} 
-                    className="text-[10px] text-shaday-red/70 mt-2 font-bold uppercase tracking-wider hover:text-shaday-red block"
+                    className="p-2 bg-white/5 hover:bg-shaday-red/20 rounded-lg transition-colors border border-white/5"
+                    title="Remover item"
                   >
-                    Remover
+                    <img src={trashIcon} alt="Remover" className="w-4 h-4 invert opacity-70 hover:opacity-100" />
                   </button>
-                </div>
-                <div className="text-white font-medium text-sm shrink-0">
-                  R$ {item.precoTotal.toFixed(2).replace('.', ',')}
                 </div>
               </div>
             ))}
@@ -257,6 +257,11 @@ export default function Checkout() {
           {usarNovoEndereco && (
             <div className="flex flex-col gap-4 animate-slide-up">
               <div>
+                <label className="block text-sm text-shaday-muted mb-2 ml-1">Salvar como (Ex: Casa, Trabalho)</label>
+                <input type="text" value={apelido} onChange={e => setApelido(e.target.value)} className="w-full bg-[#121212] border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-shaday-red" placeholder="Minha Casa" />
+              </div>
+
+              <div>
                 <label className="block text-sm text-shaday-muted mb-2 ml-1">Bairro</label>
                 <select 
                   value={bairroSelecionado}
@@ -296,7 +301,7 @@ export default function Checkout() {
           <textarea 
             value={observacaoGeral}
             onChange={e => setObservacaoGeral(e.target.value)}
-            placeholder="Ex: Preciso de troco para 50, favor não tocar a campainha..."
+            placeholder="Ex: Preciso de troco para 50..."
             className="w-full bg-[#121212] border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-shaday-red resize-none"
             rows="2"
           ></textarea>
