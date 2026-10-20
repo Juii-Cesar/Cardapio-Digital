@@ -9,6 +9,7 @@ import AdminProdutos from '../components/AdminProdutos';
 import AdminCategorias from '../components/AdminCategorias';
 import AdminPromocoes from '../components/AdminPromocoes';
 import AdminResumo from '../components/AdminResumo';
+import AdminAjustes from '../components/AdminAjustes';
 
 export default function AdminDashboard() {
 
@@ -135,6 +136,13 @@ export default function AdminDashboard() {
           >
             Promoções
           </button>
+
+          <button 
+            onClick={() => setAbaAtual('ajustes')}
+            className={`text-left px-4 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap shrink-0 h-[46px] md:h-auto flex items-center md:block ${abaAtual === 'ajustes' ? 'bg-shaday-red text-white shadow-md' : 'text-shaday-muted hover:bg-white/5 hover:text-white'}`}
+          >
+            Ajustes
+          </button>
         </nav>
 
         {/* BOTÃO VER LOJA DIRETO ABAIXO DO MENU */}
@@ -158,6 +166,7 @@ export default function AdminDashboard() {
         {abaAtual === 'categorias' && <AdminCategorias />}
         {abaAtual === 'promocoes' && <AdminPromocoes />}
         {abaAtual === 'resumo' && <AdminResumo />}
+        {abaAtual === 'ajustes' && <AdminAjustes />}
       </main>
       
     </div>
