@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { useCart } from '../contexts/CartContext';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import AuthModal from '../components/AuthModal';
-import trashIcon from '../assets/trash.webp';
+import trashIcon from '../assets/trash.png'; 
+import GerenciarEnderecosModal from '../components/GerenciarEnderecosModal'; // <-- IMPORT DO MODAL
 
 export default function Checkout() {
   const { cartItems, clearCart, removeFromCart } = useCart();
@@ -24,10 +25,41 @@ export default function Checkout() {
   const [observacaoGeral, setObservacaoGeral] = useState('');
 
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showGerenciarModal, setShowGerenciarModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lojaAberta, setLojaAberta] = useState(true);
   const [formaPagamento, setFormaPagamento] = useState(''); 
   const [dadosPix, setDadosPix] = useState({ chave: '', titular: '' });
+
+  const fetchEnderecos = useCallback(() => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    
+    axios.get(`${import.meta.env.VITE_API_URL}/api/cliente/enderecos`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    .then(response => {
+      if (response.data && response.data.length > 0) {
+        setEnderecosSalvos(response.data);
+        
+        setEnderecoSelecionadoId(prevId => {
+          const aindaExiste = response.data.find(e => String(e.id) === String(prevId));
+          if (!aindaExiste) {
+            setUsarNovoEndereco(false);
+            setBairroSelecionado(response.data[0].id_bairro);
+            setTaxaEntrega(Number(response.data[0].taxa));
+            return response.data[0].id;
+          }
+          return prevId;
+        });
+      } else {
+        setEnderecosSalvos([]);
+        setUsarNovoEndereco(true);
+        setEnderecoSelecionadoId('');
+      }
+    })
+    .catch(error => console.error("Erro ao buscar endereços:", error));
+  }, []);
 
   useEffect(() => {
     axios.get(`${import.meta.env.VITE_API_URL}/api/bairros?apenasAtivo=true`)
@@ -44,23 +76,8 @@ export default function Checkout() {
       })
       .catch(error => console.error("Erro ao carregar config:", error));
 
-    const token = localStorage.getItem('token');
-    if (token) {
-      axios.get(`${import.meta.env.VITE_API_URL}/api/cliente/enderecos`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      .then(response => {
-        if (response.data && response.data.length > 0) {
-          setEnderecosSalvos(response.data);
-          setUsarNovoEndereco(false);
-          setEnderecoSelecionadoId(response.data[0].id);
-          setBairroSelecionado(response.data[0].id_bairro);
-          setTaxaEntrega(Number(response.data[0].taxa));
-        }
-      })
-      .catch(error => console.error("Erro ao buscar endereços:", error));
-    }
-  }, []);
+    fetchEnderecos();
+  }, [fetchEnderecos]);
 
   const handleBairroChange = (e) => {
     const idBairro = e.target.value;
@@ -225,16 +242,26 @@ export default function Checkout() {
           
           {enderecosSalvos.length > 0 && (
             <div className="mb-4">
-              <div className="flex gap-4 mb-3 border border-white/5 bg-[#121212] p-2 rounded-xl">
-                <label className="flex-1 flex items-center justify-center gap-2 text-sm text-white cursor-pointer select-none">
-                  <input type="radio" checked={!usarNovoEndereco} onChange={() => setUsarNovoEndereco(false)} className="accent-shaday-red" />
-                  Salvo
-                </label>
-                <div className="w-px bg-white/10"></div>
-                <label className="flex-1 flex items-center justify-center gap-2 text-sm text-white cursor-pointer select-none">
-                  <input type="radio" checked={usarNovoEndereco} onChange={() => setUsarNovoEndereco(true)} className="accent-shaday-red" />
-                  Novo
-                </label>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="flex flex-1 gap-4 border border-white/5 bg-[#121212] p-2 rounded-xl">
+                  <label className="flex-1 flex items-center justify-center gap-2 text-sm text-white cursor-pointer select-none">
+                    <input type="radio" checked={!usarNovoEndereco} onChange={() => setUsarNovoEndereco(false)} className="accent-shaday-red" />
+                    Salvo
+                  </label>
+                  <div className="w-px bg-white/10"></div>
+                  <label className="flex-1 flex items-center justify-center gap-2 text-sm text-white cursor-pointer select-none">
+                    <input type="radio" checked={usarNovoEndereco} onChange={() => setUsarNovoEndereco(true)} className="accent-shaday-red" />
+                    Novo
+                  </label>
+                </div>
+                
+                <button 
+                  onClick={() => setShowGerenciarModal(true)}
+                  className="px-3 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs font-bold text-white/80 hover:bg-white/10 hover:text-white transition-colors"
+                  title="Gerir Endereços"
+                >
+                  ⚙️ Gerir
+                </button>
               </div>
 
               {!usarNovoEndereco && (
@@ -388,6 +415,13 @@ export default function Checkout() {
             setShowAuthModal(false);
             handleFinalizarPedido();
           }} 
+        />
+      )}
+
+      {showGerenciarModal && (
+        <GerenciarEnderecosModal 
+          onClose={() => setShowGerenciarModal(false)}
+          onUpdate={fetchEnderecos}
         />
       )}
       
