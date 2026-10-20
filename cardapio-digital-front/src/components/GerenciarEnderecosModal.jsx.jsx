@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import trashIcon from '../assets/trash.png';
+import trashIcon from '../assets/trash.webp';
 
 export default function GerenciarEnderecosModal({ onClose, onUpdate }) {
   const [enderecos, setEnderecos] = useState([]);
