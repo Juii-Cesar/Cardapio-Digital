@@ -36,9 +36,13 @@ export default function AdminDashboard() {
     const buscarPedidosPendentes = async () => {
       try {
         const config = { headers: { Authorization: `Bearer ${token}` } };
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/admin/pedidos`, config);
         
-        const pendentes = response.data.filter(pedido => pedido.status === 'Pendente').length;
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/pedidos`, config);
+        
+        const pendentes = response.data.filter(pedido => 
+          pedido.status && pedido.status.toLowerCase() === 'pendente'
+        ).length;
+        
         setPedidosPendentes(pendentes);
       } catch (error) {
         console.error("Erro ao buscar pedidos pendentes:", error);
@@ -70,7 +74,6 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-shaday-bg text-white font-sans flex flex-col md:flex-row">
       
-      {/* BARRA LATERAL COMPACTA */}
       <aside className="w-full md:w-64 bg-shaday-card border-b md:border-b-0 md:border-r border-white/5 p-4 flex flex-col shrink-0 relative z-10">
         
         <div className="flex items-center gap-3 px-2 mb-4 shrink-0">
@@ -145,7 +148,6 @@ export default function AdminDashboard() {
           </button>
         </nav>
 
-        {/* BOTÃO VER LOJA DIRETO ABAIXO DO MENU */}
         <div className="hidden md:block mt-4 pt-4 border-t border-white/5 shrink-0">
           <button 
             onClick={() => window.open('/', '_blank')}

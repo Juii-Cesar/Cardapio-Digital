@@ -50,7 +50,38 @@ export default function AdminAjustes() {
     }
   };
 
-  if (loading) return <div className="animate-pulse text-white p-4">A carregar ajustes...</div>;
+  if (loading) return (
+    <div className="flex flex-col gap-6 w-full animate-pulse pb-4">
+      <div>
+        <div className="h-8 bg-white/10 w-48 rounded-lg mb-2"></div>
+        <div className="h-4 bg-white/5 w-80 rounded-lg"></div>
+      </div>
+
+      <div className="bg-shaday-card border border-white/5 rounded-2xl p-6 shadow-sm flex flex-col gap-4">
+        <div>
+          <div className="h-5 bg-white/10 w-64 rounded-lg mb-2"></div>
+          <div className="h-3.5 bg-white/5 w-96 max-w-full rounded-lg"></div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
+          <div>
+            <div className="h-3 bg-white/5 w-20 rounded mb-2 ml-1"></div>
+            <div className="h-11 bg-white/10 rounded-xl w-full"></div>
+          </div>
+          <div>
+            <div className="h-3 bg-white/5 w-20 rounded mb-2 ml-1"></div>
+            <div className="h-11 bg-white/10 rounded-xl w-full"></div>
+          </div>
+          <div>
+            <div className="h-3 bg-white/5 w-36 rounded mb-2 ml-1"></div>
+            <div className="h-11 bg-white/10 rounded-xl w-full"></div>
+          </div>
+        </div>
+
+        <div className="h-[46px] bg-white/10 w-32 rounded-xl self-end mt-2"></div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex flex-col gap-6 w-full animate-fade-in pb-4">
@@ -61,7 +92,7 @@ export default function AdminAjustes() {
 
       <div className="bg-shaday-card border border-white/5 rounded-2xl p-6 shadow-sm">
         <h3 className="text-white font-bold mb-1">Pagamento (PIX) & WhatsApp</h3>
-        <p className="text-shaday-muted text-xs mb-4">Ajuste os dados bancários do PIX e o número de WhatsApp para recebimento de comprovativos.</p>
+        <p className="text-shaday-muted text-xs mb-4">Ajuste os dados bancários do PIX e o número de WhatsApp para recebimento de comprovantes.</p>
 
         <form onSubmit={handleSalvarConfig} className="flex flex-col gap-4">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -77,7 +108,7 @@ export default function AdminAjustes() {
             </div>
 
             <div>
-              <label className="block text-xs text-shaday-muted mb-1 ml-1">Nome do Titular da Conta</label>
+              <label className="block text-xs text-shaday-muted mb-1 ml-1">Nome</label>
               <input
                 type="text"
                 value={titularPix}
@@ -88,12 +119,12 @@ export default function AdminAjustes() {
             </div>
 
             <div>
-              <label className="block text-xs text-shaday-muted mb-1 ml-1">WhatsApp para Comprovativos</label>
+              <label className="block text-xs text-shaday-muted mb-1 ml-1">WhatsApp para Comprovantes</label>
               <input
                 type="text"
                 value={whatsapp}
                 onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, ''))}
-                placeholder="Ex: 5521999999999"
+                placeholder="Ex: 21999999999"
                 className="w-full bg-[#121212] border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-shaday-red text-sm transition-colors"
               />
             </div>
@@ -104,7 +135,7 @@ export default function AdminAjustes() {
             disabled={salvando}
             className="bg-shaday-red hover:bg-red-700 text-white px-6 py-3 rounded-xl font-bold text-sm transition-colors self-end disabled:opacity-50 h-[46px] mt-2"
           >
-            {salvando ? 'A Salvar...' : 'Salvar Configurações'}
+            {salvando ? 'A Salvar...' : 'Salvar'}
           </button>
         </form>
       </div>

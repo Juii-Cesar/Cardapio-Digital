@@ -21,7 +21,7 @@ export default function AdminPedidos() {
       if (Array.isArray(response.data)) {
         setPedidos(response.data);
 
-        const pendentesAtuais = response.data.filter(p => p.status === 'Pendente').length;
+        const pendentesAtuais = response.data.filter(p => p.status && p.status.toLowerCase() === 'pendente').length;
         
         if (!primeiraCarga.current && pendentesAtuais > quantidadePendentesRef.current) {
           const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
@@ -82,48 +82,48 @@ export default function AdminPedidos() {
       <html>
         <head>
           <style>
-            @page { margin: 0; } /* Isso remove o about:blank e as datas do topo/rodapé */
-            body { font-family: monospace; width: 300px; margin: 0 auto; padding: 15px; font-size: 16px; color: #000; }
+            @page { margin: 0; }
+            body { font-family: monospace; width: 280px; margin: 0 auto; padding: 10px; font-size: 13px; color: #000; }
             .center { text-align: center; }
-            .divider { border-bottom: 1px dashed #000; margin: 15px 0; }
+            .divider { border-bottom: 1px dashed #000; margin: 10px 0; }
             .bold { font-weight: bold; }
             .flex-between { display: flex; justify-content: space-between; }
-            h2 { font-size: 22px; margin: 0; }
+            h2 { font-size: 18px; margin: 0; }
           </style>
         </head>
         <body>
           <div class="center">
             <h2>SUSHI SHADAY</h2>
-            <p style="margin:5px 0;">Pedido #${String(pedido.id_pedido).substring(0,6).toUpperCase()}</p>
-            <p style="margin:5px 0;">Data: ${new Date(pedido.criado_em.includes('Z') ? pedido.criado_em : `${pedido.criado_em}Z`).toLocaleTimeString('pt-BR')}</p>
+            <p style="margin:4px 0;">Pedido #${String(pedido.id_pedido).substring(0,6).toUpperCase()}</p>
+            <p style="margin:4px 0;">Data: ${new Date(pedido.criado_em.includes('Z') ? pedido.criado_em : `${pedido.criado_em}Z`).toLocaleTimeString('pt-BR')}</p>
           </div>
           <div class="divider"></div>
-          <p class="bold">CLIENTE: ${pedido.cliente_nome}</p>
-          <p>Tel: ${pedido.cliente_tel}</p>
-          <p>Endereço: ${pedido.rua}, ${pedido.numero}</p>
-          ${pedido.complemento ? `<p>Comp: ${pedido.complemento}</p>` : ''}
-          <p>Bairro: ${pedido.nome_bairro}</p>
+          <p class="bold" style="margin:4px 0;">CLIENTE: ${pedido.cliente_nome}</p>
+          <p style="margin:4px 0;">Tel: ${pedido.cliente_tel}</p>
+          <p style="margin:4px 0;">Endereço: ${pedido.rua}, ${pedido.numero}</p>
+          ${pedido.complemento ? `<p style="margin:4px 0;">Comp: ${pedido.complemento}</p>` : ''}
+          <p style="margin:4px 0;">Bairro: ${pedido.nome_bairro}</p>
           <div class="divider"></div>
-          <p class="bold">ITENS DO PEDIDO:</p>
+          <p class="bold" style="margin:4px 0;">ITENS DO PEDIDO:</p>
           ${pedido.itens.map(item => `
-            <div class="flex-between">
+            <div class="flex-between" style="margin: 4px 0;">
               <span>${item.quantidade}x${item.produto_nome || item.promo_nome}</span>
               <span>R$ ${item.preco_unitario}</span>
             </div>
-            ${item.observacao ? `<small style="display:block; margin-bottom:5px; font-size: 14px;">Obs: ${item.observacao}</small>` : ''}
+            ${item.observacao ? `<small style="display:block; margin-bottom:4px; font-size: 11px;">Obs: ${item.observacao}</small>` : ''}
           `).join('')}
           <div class="divider"></div>
           ${pedido.observacao_geral ? `
-            <p class="bold">OBSERVAÇÕES DO PEDIDO:</p>
-            <p style="font-size: 15px;">${pedido.observacao_geral}</p>
+            <p class="bold" style="margin:4px 0;">OBSERVAÇÕES:</p>
+            <p style="font-size: 12px; margin:4px 0;">${pedido.observacao_geral}</p>
             <div class="divider"></div>
           ` : ''}
-          <div class="flex-between bold" style="font-size: 18px;">
+          <div class="flex-between bold" style="font-size: 15px; margin-top: 5px;">
             <span>TOTAL:</span>
             <span>R$ ${Number(pedido.total).toFixed(2).replace('.', ',')}</span>
           </div>
-          <div class="center" style="margin-top: 25px;">
-            <p>Obrigado pela preferência!</p>
+          <div class="center" style="margin-top: 15px;">
+            <p style="margin:0;">Obrigado pela preferência!</p>
           </div>
           <script>
             window.onload = function() { window.print(); window.close(); }
@@ -306,7 +306,7 @@ export default function AdminPedidos() {
     <div className="flex flex-col h-[calc(100vh-6rem)]">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
-           <h2 className="text-white font-bold text-2xl">Gestão de Pedidos</h2>
+           <h2 className="text-white font-bold text-2xl">Pedidos</h2>
            <p className="text-shaday-muted text-sm mt-1">Acompanhe os pedidos em tempo real.</p>
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
