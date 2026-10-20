@@ -90,7 +90,7 @@ export default function AdminDashboard() {
                 : 'text-shaday-muted hover:bg-white/5 hover:text-white'
             }`}
           >
-            Gestão de Pedidos
+            Pedidos
           </button>
           
           <button 
@@ -112,7 +112,7 @@ export default function AdminDashboard() {
                 : 'text-shaday-muted hover:bg-white/5 hover:text-white'
             }`}
           >
-            Gestão de Categorias
+            Categorias
           </button>
 
           <button 
@@ -123,7 +123,7 @@ export default function AdminDashboard() {
                 : 'text-shaday-muted hover:bg-white/5 hover:text-white'
             }`}
           >
-            Cardápio / Produtos
+            Cardápio
           </button>
 
           <button 

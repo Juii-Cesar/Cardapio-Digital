@@ -101,7 +101,7 @@ export default function ProdutoModal({ produto, onClose }) {
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          className="w-full h-56 bg-shaday-card relative shrink-0 z-20"
+          className="w-full h-56 bg-shaday-card relative shrink-0 z-20 touch-none"
         >
           <div className="w-full flex justify-center pt-3 pb-1 sm:hidden absolute top-0 z-20">
             <div className="w-12 h-1.5 bg-white/30 rounded-full"></div>

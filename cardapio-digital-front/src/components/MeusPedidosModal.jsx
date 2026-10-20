@@ -120,7 +120,7 @@ export default function MeusPedidosModal({ onClose }) {
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-          className="shrink-0 relative rounded-t-3xl sm:rounded-3xl z-20"
+          className="shrink-0 relative rounded-t-3xl sm:rounded-3xl z-20 touch-none"
         >
           <div className="w-full flex justify-center absolute top-2 left-0 sm:hidden">
             <div className="w-12 h-1.5 bg-white/20 rounded-full"></div>
