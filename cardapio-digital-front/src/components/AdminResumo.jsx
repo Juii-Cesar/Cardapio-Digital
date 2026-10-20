@@ -23,9 +23,13 @@ export default function AdminResumo() {
   const [loading, setLoading] = useState(true);
   const [todosPedidos, setTodosPedidos] = useState([]);
   const [filtroTempo, setFiltroTempo] = useState('7d');
+  
   const [chavePix, setChavePix] = useState('');
   const [titularPix, setTitularPix] = useState('');
   const [salvandoPix, setSalvandoPix] = useState(false);
+  
+  const [whatsapp, setWhatsapp] = useState('');
+  const [salvandoWhatsapp, setSalvandoWhatsapp] = useState(false);
 
   useEffect(() => {
     const carregarDados = async () => {
@@ -40,6 +44,7 @@ export default function AdminResumo() {
         if (resConfig.data) {
           setChavePix(resConfig.data.chave_pix || '');
           setTitularPix(resConfig.data.titular_pix || '');
+          setWhatsapp(resConfig.data.whatsapp || '');
         }
 
       } catch (error) {
@@ -67,6 +72,24 @@ export default function AdminResumo() {
       toast.error("Erro ao salvar dados do PIX.");
     } finally {
       setSalvandoPix(false);
+    }
+  };
+
+  const handleSalvarWhatsapp = async (e) => {
+    e.preventDefault();
+    setSalvandoWhatsapp(true);
+    try {
+      const token = localStorage.getItem('adminToken');
+      await axios.put(`${import.meta.env.VITE_API_URL}/api/loja/config`, 
+        { whatsapp: whatsapp }, 
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success("Número do WhatsApp atualizado!");
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro ao salvar número do WhatsApp.");
+    } finally {
+      setSalvandoWhatsapp(false);
     }
   };
 
@@ -256,39 +279,75 @@ export default function AdminResumo() {
         </div>
       </div>
 
-      <div className="bg-shaday-card border border-white/5 rounded-2xl p-6 shadow-sm">
-        <h3 className="text-white font-bold mb-1">Configuração de Pagamento (PIX)</h3>
-        <p className="text-shaday-muted text-xs mb-4">Estes dados aparecerão para o cliente copiar na hora de finalizar o pedido.</p>
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        
+        {/* SECÇÃO PIX */}
+        <div className="bg-shaday-card border border-white/5 rounded-2xl p-6 shadow-sm flex flex-col h-full">
+          <div>
+            <h3 className="text-white font-bold mb-1">Configuração de Pagamento (PIX)</h3>
+            <p className="text-shaday-muted text-xs mb-4">Estes dados aparecerão para o cliente copiar na hora de finalizar o pedido.</p>
+          </div>
 
-        <form onSubmit={handleSalvarPix} className="flex flex-col sm:flex-row gap-4 items-end">
-          <div className="flex-1 w-full">
-            <label className="block text-xs text-shaday-muted mb-1 ml-1">Chave PIX (Telefone, CPF, Email ou Aleatória)</label>
-            <input
-              type="text"
-              value={chavePix}
-              onChange={(e) => setChavePix(e.target.value)}
-              placeholder="Ex: 21999999999"
-              className="w-full bg-[#121212] border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-shaday-red text-sm transition-colors"
-            />
+          <form onSubmit={handleSalvarPix} className="flex flex-col gap-4 mt-auto">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex-1 w-full">
+                <label className="block text-xs text-shaday-muted mb-1 ml-1">Chave PIX (Telefone, CPF, Email ou Aleatória)</label>
+                <input
+                  type="text"
+                  value={chavePix}
+                  onChange={(e) => setChavePix(e.target.value)}
+                  placeholder="Ex: 21999999999"
+                  className="w-full bg-[#121212] border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-shaday-red text-sm transition-colors"
+                />
+              </div>
+              <div className="flex-1 w-full">
+                <label className="block text-xs text-shaday-muted mb-1 ml-1">Nome</label>
+                <input
+                  type="text"
+                  value={titularPix}
+                  onChange={(e) => setTitularPix(e.target.value)}
+                  placeholder="Ex: Maria da Silva"
+                  className="w-full bg-[#121212] border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-shaday-red text-sm transition-colors"
+                />
+              </div>
+            </div>
+            <button
+              type="submit"
+              disabled={salvandoPix}
+              className="bg-shaday-red hover:bg-red-700 text-white px-6 py-3 rounded-xl font-bold text-sm transition-colors w-full sm:w-auto self-end disabled:opacity-50 h-[46px]"
+            >
+              {salvandoPix ? 'A Salvar...' : 'Salvar Dados PIX'}
+            </button>
+          </form>
+        </div>
+
+        <div className="bg-shaday-card border border-white/5 rounded-2xl p-6 shadow-sm flex flex-col h-full">
+          <div>
+            <h3 className="text-white font-bold mb-1">WhatsApp</h3>
+            <p className="text-shaday-muted text-xs mb-4">O número que receberá os comprovativos de PIX enviados pelos clientes.</p>
           </div>
-          <div className="flex-1 w-full">
-            <label className="block text-xs text-shaday-muted mb-1 ml-1">Nome do Titular da Conta</label>
-            <input
-              type="text"
-              value={titularPix}
-              onChange={(e) => setTitularPix(e.target.value)}
-              placeholder="Ex: Maria da Silva"
-              className="w-full bg-[#121212] border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-shaday-red text-sm transition-colors"
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={salvandoPix}
-            className="bg-shaday-red hover:bg-red-700 text-white px-6 py-3 rounded-xl font-bold text-sm transition-colors whitespace-nowrap disabled:opacity-50 h-[46px]"
-          >
-            {salvandoPix ? 'A Salvar...' : 'Salvar Dados'}
-          </button>
-        </form>
+
+          <form onSubmit={handleSalvarWhatsapp} className="flex flex-col gap-4 mt-auto">
+            <div className="w-full">
+              <label className="block text-xs text-shaday-muted mb-1 ml-1">Número do WhatsApp (Apenas números com DDD)</label>
+              <input
+                type="text"
+                value={whatsapp}
+                onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, ''))}
+                placeholder="Ex: 5521999999999"
+                className="w-full bg-[#121212] border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-shaday-red text-sm transition-colors"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={salvandoWhatsapp}
+              className="bg-shaday-red hover:bg-red-700 text-white px-6 py-3 rounded-xl font-bold text-sm transition-colors w-full sm:w-auto self-end disabled:opacity-50 h-[46px]"
+            >
+              {salvandoWhatsapp ? 'Salvando...' : 'Salvar WhatsApp'}
+            </button>
+          </form>
+        </div>
+
       </div>
 
     </div>

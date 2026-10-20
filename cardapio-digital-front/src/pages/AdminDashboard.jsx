@@ -14,6 +14,7 @@ export default function AdminDashboard() {
 
   const [abaAtual, setAbaAtual] = useState('resumo');
   const [lojaAberta, setLojaAberta] = useState(true);
+  const [pedidosPendentes, setPedidosPendentes] = useState(0);
   const navigate = useNavigate();
   
   useEffect(() => {
@@ -30,6 +31,22 @@ export default function AdminDashboard() {
         }
       })
       .catch(err => console.error("Erro ao buscar status da loja:", err));
+
+    const buscarPedidosPendentes = async () => {
+      try {
+        const config = { headers: { Authorization: `Bearer ${token}` } };
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/admin/pedidos`, config);
+        
+        const pendentes = response.data.filter(pedido => pedido.status === 'Pendente').length;
+        setPedidosPendentes(pendentes);
+      } catch (error) {
+        console.error("Erro ao buscar pedidos pendentes:", error);
+      }
+    };
+
+    buscarPedidosPendentes();
+    const interval = setInterval(buscarPedidosPendentes, 10000);
+    return () => clearInterval(interval);
   }, [navigate]);
 
   const handleToggleLoja = async () => {
@@ -51,13 +68,13 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-shaday-bg text-white font-sans flex flex-col md:flex-row">
-      <aside className="w-full md:w-64 bg-shaday-card border-b md:border-b-0 md:border-r border-white/5 p-4 flex flex-col gap-6 shrink-0">
+      <aside className="w-full md:w-64 bg-shaday-card border-b md:border-b-0 md:border-r border-white/5 p-4 flex flex-col gap-6 shrink-0 relative">
         <div className="flex items-center gap-3 px-2">
           <img src={logoImg} alt="Logo" className="h-10 w-auto object-contain" />
           <span className="font-bold text-lg">Gerência da Loja</span>
         </div>
         
-        <nav className="flex flex-row md:flex-col gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden pb-2 md:pb-0">
+        <nav className="flex-1 flex flex-row md:flex-col gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden pb-2 md:pb-0">
           <div className="shrink-0 mb-0 md:mb-6 px-4 py-3 bg-[#121212] rounded-xl border border-white/5 flex items-center justify-between gap-4">
             <span className={`text-xs font-bold flex items-center gap-2 ${lojaAberta ? 'text-green-500' : 'text-shaday-red'}`}>
               <div className={`w-2 h-2 rounded-full ${lojaAberta ? 'bg-green-500 animate-pulse' : 'bg-shaday-red'}`}></div>
@@ -84,13 +101,18 @@ export default function AdminDashboard() {
 
           <button 
             onClick={() => setAbaAtual('pedidos')}
-            className={`text-left px-4 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
+            className={`text-left px-4 py-3 rounded-xl text-sm font-medium transition-all flex items-center justify-between whitespace-nowrap ${
               abaAtual === 'pedidos' 
                 ? 'bg-shaday-red text-white shadow-md' 
                 : 'text-shaday-muted hover:bg-white/5 hover:text-white'
             }`}
           >
-            Pedidos
+            <span>Pedidos</span>
+            {pedidosPendentes > 0 && (
+              <span className={`flex items-center justify-center w-5 h-5 text-[10px] font-bold rounded-full ${abaAtual === 'pedidos' ? 'bg-white text-shaday-red' : 'bg-shaday-red text-white'}`}>
+                {pedidosPendentes > 99 ? '99+' : pedidosPendentes}
+              </span>
+            )}
           </button>
           
           <button 
@@ -101,7 +123,7 @@ export default function AdminDashboard() {
                 : 'text-shaday-muted hover:bg-white/5 hover:text-white'
             }`}
           >
-            Áreas de Entrega
+            Entrega
           </button>
 
           <button 
@@ -134,9 +156,21 @@ export default function AdminDashboard() {
                 : 'text-shaday-muted hover:bg-white/5 hover:text-white'
             }`}
           >
-            Combos & Promoções
+            Promoções
           </button>
         </nav>
+
+        <div className="mt-auto hidden md:block pt-4 border-t border-white/5">
+          <button 
+            onClick={() => window.open('/', '_blank')}
+            className="w-full bg-white/5 hover:bg-white/10 text-white border border-white/10 px-4 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+            Ver Loja
+          </button>
+        </div>
       </aside>
 
       <main className="flex-1 p-4 sm:p-8 overflow-y-auto">
