@@ -3,6 +3,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import trashIcon from '../assets/trash.webp'; 
 import editIcon from '../assets/editar.webp';
+import CustomSelect from './CustomSelect';
 
 export default function GerenciarEnderecosModal({ onClose, onUpdate }) {
   const [enderecos, setEnderecos] = useState([]);
@@ -119,18 +120,13 @@ export default function GerenciarEnderecosModal({ onClose, onUpdate }) {
                        <div className="flex flex-col gap-3 animate-slide-up">
                           <input type="text" value={editForm.apelido} onChange={e => setEditForm({...editForm, apelido: e.target.value})} className="bg-black/50 border border-white/10 rounded-lg p-2 text-white text-sm focus:border-shaday-red focus:outline-none" placeholder="Nome (Ex: Casa)" />
                           
-                          <select 
-                            value={editForm.id_bairro} 
-                            onChange={e => setEditForm({...editForm, id_bairro: e.target.value})} 
-                            className="bg-black/50 border border-white/10 rounded-lg p-2 text-white text-sm focus:border-shaday-red focus:outline-none"
-                          >
-                            <option value="" className="bg-[#121212] text-white">Selecione o bairro...</option>
-                            {bairros.map(b => (
-                              <option key={b.id} value={b.id} className="bg-[#121212] text-white">
-                                {b.nome_bairro}
-                              </option>
-                            ))}
-                          </select>
+                          <CustomSelect 
+                            value={editForm.id_bairro}
+                            onChange={e => setEditForm({...editForm, id_bairro: e.target.value})}
+                            options={bairros.map(b => ({ value: b.id, label: b.nome_bairro }))}
+                            placeholder="Selecione o bairro..."
+                            className="bg-black/50 border border-white/10 rounded-lg p-2.5 text-sm focus:border-shaday-red"
+                          />
 
                           <div className="flex gap-2">
                             <input type="text" value={editForm.rua} onChange={e => setEditForm({...editForm, rua: e.target.value})} className="bg-black/50 border border-white/10 rounded-lg p-2 text-white text-sm flex-1 focus:border-shaday-red focus:outline-none" placeholder="Rua" />

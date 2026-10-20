@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import AuthModal from '../components/AuthModal';
 import trashIcon from '../assets/trash.webp'; 
 import GerenciarEnderecosModal from '../components/GerenciarEnderecosModal';
+import CustomSelect from '../components/CustomSelect';
 
 export default function Checkout() {
   const { cartItems, clearCart, removeFromCart } = useCart();
@@ -265,18 +266,16 @@ export default function Checkout() {
               </div>
 
               {!usarNovoEndereco && (
-                <select 
+                <CustomSelect 
                   value={enderecoSelecionadoId} 
                   onChange={handleSelectEnderecoSalvo}
-                  className="w-full bg-[#121212] border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-shaday-red"
-                >
-                  <option value="" disabled className="bg-[#121212] text-white/50">Selecione um endereço...</option>
-                  {enderecosSalvos.map(end => (
-                    <option key={end.id} value={end.id} className="bg-[#121212] text-white">
-                      {end.apelido ? `${end.apelido}: ` : ''}{end.rua}, {end.numero}
-                    </option>
-                  ))}
-                </select>
+                  options={enderecosSalvos.map(end => ({ 
+                    value: end.id, 
+                    label: `${end.apelido ? end.apelido + ': ' : ''}${end.rua}, ${end.numero}` 
+                  }))}
+                  placeholder="Selecione um endereço..."
+                  className="bg-[#121212] border border-white/10 rounded-xl p-3.5 text-sm focus:border-shaday-red"
+                />
               )}
             </div>
           )}
@@ -290,18 +289,16 @@ export default function Checkout() {
 
               <div>
                 <label className="block text-sm text-shaday-muted mb-2 ml-1">Bairro</label>
-                <select 
+                <CustomSelect 
                   value={bairroSelecionado}
                   onChange={handleBairroChange}
-                  className="w-full bg-[#121212] border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-shaday-red appearance-none"
-                >
-                  <option value="" className="bg-[#121212] text-white/50">Selecione o seu bairro...</option>
-                  {bairros.map(b => (
-                    <option key={b.id} value={b.id} className="bg-[#121212] text-white">
-                      {b.nome_bairro} (Taxa: R$ {Number(b.taxa).toFixed(2).replace('.', ',')})
-                    </option>
-                  ))}
-                </select>
+                  options={bairros.map(b => ({ 
+                    value: b.id, 
+                    label: `${b.nome_bairro} (Taxa: R$ ${Number(b.taxa).toFixed(2).replace('.', ',')})` 
+                  }))}
+                  placeholder="Selecione o seu bairro..."
+                  className="bg-[#121212] border border-white/10 rounded-xl p-3.5 text-sm focus:border-shaday-red"
+                />
               </div>
               
               <div className="flex gap-3">
