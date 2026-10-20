@@ -270,9 +270,9 @@ export default function Checkout() {
                   onChange={handleSelectEnderecoSalvo}
                   className="w-full bg-[#121212] border border-white/10 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-shaday-red"
                 >
-                  <option value="" disabled>Selecione um endereço...</option>
+                  <option value="" disabled className="bg-[#121212] text-white/50">Selecione um endereço...</option>
                   {enderecosSalvos.map(end => (
-                    <option key={end.id} value={end.id}>
+                    <option key={end.id} value={end.id} className="bg-[#121212] text-white">
                       {end.apelido ? `${end.apelido}: ` : ''}{end.rua}, {end.numero}
                     </option>
                   ))}
@@ -295,9 +295,9 @@ export default function Checkout() {
                   onChange={handleBairroChange}
                   className="w-full bg-[#121212] border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-shaday-red appearance-none"
                 >
-                  <option value="">Selecione o seu bairro...</option>
+                  <option value="" className="bg-[#121212] text-white/50">Selecione o seu bairro...</option>
                   {bairros.map(b => (
-                    <option key={b.id} value={b.id}>
+                    <option key={b.id} value={b.id} className="bg-[#121212] text-white">
                       {b.nome_bairro} (Taxa: R$ {Number(b.taxa).toFixed(2).replace('.', ',')})
                     </option>
                   ))}
@@ -341,7 +341,7 @@ export default function Checkout() {
               <input type="radio" name="pagamento" value="pix" checked={formaPagamento === 'pix'} onChange={(e) => setFormaPagamento(e.target.value)} className="w-4 h-4 accent-green-500" />
               <div className="flex flex-col">
                 <span className="text-white text-sm font-medium">PIX</span>
-                <span className="text-shaday-muted text-xs">Pague agora pelo telefone</span>
+                <span className="text-shaday-muted text-xs">Pague agora pelo celular</span>
               </div>
             </label>
 

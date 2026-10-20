@@ -54,22 +54,22 @@ export default function AdminDashboard() {
       <aside className="w-full md:w-64 bg-shaday-card border-b md:border-b-0 md:border-r border-white/5 p-4 flex flex-col gap-6 shrink-0">
         <div className="flex items-center gap-3 px-2">
           <img src={logoImg} alt="Logo" className="h-10 w-auto object-contain" />
-          <span className="font-bold text-lg">Painel Admin</span>
+          <span className="font-bold text-lg">Gerência da Loja</span>
         </div>
         
         <nav className="flex flex-row md:flex-col gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden pb-2 md:pb-0">
-        <div className="mb-6 px-4 py-3 bg-[#121212] rounded-xl border border-white/5 flex items-center justify-between">
-          <span className={`text-xs font-bold flex items-center gap-2 ${lojaAberta ? 'text-green-500' : 'text-shaday-red'}`}>
-            <div className={`w-2 h-2 rounded-full ${lojaAberta ? 'bg-green-500 animate-pulse' : 'bg-shaday-red'}`}></div>
-            {lojaAberta ? 'LOJA ABERTA' : 'LOJA FECHADA'}
-          </span>
-          <button 
-            onClick={handleToggleLoja} 
-            className={`w-10 h-5 rounded-full relative transition-colors ${lojaAberta ? 'bg-green-600' : 'bg-white/10'}`}
-          >
-            <div className={`w-3 h-3 rounded-full bg-white absolute top-1 transition-all ${lojaAberta ? 'left-6' : 'left-1'}`}></div>
-          </button>
-        </div>
+          <div className="shrink-0 mb-0 md:mb-6 px-4 py-3 bg-[#121212] rounded-xl border border-white/5 flex items-center justify-between gap-4">
+            <span className={`text-xs font-bold flex items-center gap-2 ${lojaAberta ? 'text-green-500' : 'text-shaday-red'}`}>
+              <div className={`w-2 h-2 rounded-full ${lojaAberta ? 'bg-green-500 animate-pulse' : 'bg-shaday-red'}`}></div>
+              {lojaAberta ? 'LOJA ABERTA' : 'LOJA FECHADA'}
+            </span>
+            <button 
+              onClick={handleToggleLoja} 
+              className={`w-10 h-5 rounded-full relative transition-colors shrink-0 ${lojaAberta ? 'bg-green-600' : 'bg-white/10'}`}
+            >
+              <div className={`w-3 h-3 rounded-full bg-white absolute top-1 transition-all ${lojaAberta ? 'left-6' : 'left-1'}`}></div>
+            </button>
+          </div>
 
           <button 
             onClick={() => setAbaAtual('resumo')}
