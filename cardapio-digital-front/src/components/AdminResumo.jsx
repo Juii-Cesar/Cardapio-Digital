@@ -27,7 +27,7 @@ export default function AdminResumo() {
   const [chavePix, setChavePix] = useState('');
   const [titularPix, setTitularPix] = useState('');
   const [salvandoPix, setSalvandoPix] = useState(false);
-  
+
   const [whatsapp, setWhatsapp] = useState('');
   const [salvandoWhatsapp, setSalvandoWhatsapp] = useState(false);
 
@@ -324,7 +324,7 @@ export default function AdminResumo() {
         <div className="bg-shaday-card border border-white/5 rounded-2xl p-6 shadow-sm flex flex-col h-full">
           <div>
             <h3 className="text-white font-bold mb-1">WhatsApp</h3>
-            <p className="text-shaday-muted text-xs mb-4">O número que receberá os comprovativos de PIX enviados pelos clientes.</p>
+            <p className="text-shaday-muted text-xs mb-4">O número que receberá os comprovantes de PIX enviados pelos clientes.</p>
           </div>
 
           <form onSubmit={handleSalvarWhatsapp} className="flex flex-col gap-4 mt-auto">
