@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import trashIcon from '../assets/trash.png';
 
 export default function GerenciarEnderecosModal({ onClose, onUpdate }) {
   const [enderecos, setEnderecos] = useState([]);
@@ -116,11 +117,11 @@ export default function GerenciarEnderecosModal({ onClose, onUpdate }) {
                             <p className="text-shaday-red/80 text-xs mt-0.5">{end.nome_bairro}</p>
                           </div>
                           <div className="flex gap-1">
-                            <button onClick={() => startEdit(end)} className="p-2 bg-white/5 hover:bg-white/20 rounded-lg transition-colors border border-white/5" title="Editar">
+                            <button onClick={() => startEdit(end)} className="p-2.5 bg-white/5 hover:bg-white/20 rounded-lg transition-colors border border-white/5" title="Editar">
                                ✏️
                             </button>
-                            <button onClick={() => handleDelete(end.id)} className="p-2 bg-white/5 hover:bg-shaday-red/20 rounded-lg transition-colors border border-white/5" title="Remover">
-                               🗑️
+                            <button onClick={() => handleDelete(end.id)} className="p-2 bg-white/5 hover:bg-shaday-red/20 rounded-lg transition-colors border border-white/5 flex items-center justify-center" title="Remover">
+                               <img src={trashIcon} alt="Remover" className="w-5 h-5 invert opacity-70 hover:opacity-100" />
                             </button>
                           </div>
                        </div>
