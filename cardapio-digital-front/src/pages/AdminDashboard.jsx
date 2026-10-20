@@ -36,6 +36,7 @@ export default function AdminDashboard() {
       try {
         const config = { headers: { Authorization: `Bearer ${token}` } };
         const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/admin/pedidos`, config);
+        
         const pendentes = response.data.filter(pedido => pedido.status === 'Pendente').length;
         setPedidosPendentes(pendentes);
       } catch (error) {
@@ -52,6 +53,7 @@ export default function AdminDashboard() {
     try {
       const token = localStorage.getItem('adminToken');
       const config = { headers: { Authorization: `Bearer ${token}` } };
+      
       const novoStatus = !lojaAberta;
 
       await axios.put(`${import.meta.env.VITE_API_URL}/api/loja/config`, { aberta: novoStatus }, config);
@@ -65,33 +67,41 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="h-screen bg-shaday-bg text-white font-sans flex flex-col md:flex-row overflow-hidden">
+    <div className="h-screen w-full bg-shaday-bg text-white font-sans flex flex-col md:flex-row overflow-hidden">
       
-      <aside className="w-full md:w-64 h-full bg-shaday-card border-b md:border-b-0 md:border-r border-white/5 p-4 flex flex-col shrink-0 z-10">
-        <div className="flex items-center gap-3 px-2 mb-6 shrink-0">
+      {/* CORREÇÃO AQUI: Trocado 'h-full' por 'md:h-full' para não esticar no mobile */}
+      <aside className="w-full md:w-64 md:h-full bg-shaday-card border-b md:border-b-0 md:border-r border-white/5 p-4 flex flex-col shrink-0 relative z-10">
+        
+        <div className="flex items-center gap-3 px-2 mb-4 md:mb-6 shrink-0">
           <img src={logoImg} alt="Logo" className="h-10 w-auto object-contain" />
           <span className="font-bold text-lg">Gerência da Loja</span>
         </div>
         
-        <nav className="flex-1 flex flex-row md:flex-col gap-2 overflow-y-auto [&::-webkit-scrollbar]:hidden pb-2 md:pb-0">
-          <div className="shrink-0 mb-0 md:mb-6 px-4 py-3 bg-[#121212] rounded-xl border border-white/5 flex items-center justify-between gap-4">
+        {/* CORREÇÃO AQUI: Trocado 'flex-1' por 'md:flex-1' */}
+        <nav className="md:flex-1 flex flex-row md:flex-col gap-2 overflow-x-auto md:overflow-y-auto overflow-y-hidden [&::-webkit-scrollbar]:hidden pb-2 md:pb-0 items-center md:items-stretch">
+          
+          {/* Adicionado shrink-0, h-[46px] e flex items-center a todos os botões para forçar o tamanho certo no mobile */}
+          <div className="shrink-0 mb-0 md:mb-6 px-4 py-3 bg-[#121212] rounded-xl border border-white/5 flex items-center justify-between gap-4 h-[46px] md:h-auto">
             <span className={`text-xs font-bold flex items-center gap-2 ${lojaAberta ? 'text-green-500' : 'text-shaday-red'}`}>
               <div className={`w-2 h-2 rounded-full ${lojaAberta ? 'bg-green-500 animate-pulse' : 'bg-shaday-red'}`}></div>
               {lojaAberta ? 'LOJA ABERTA' : 'LOJA FECHADA'}
             </span>
-            <button 
-              onClick={handleToggleLoja} 
-              className={`w-10 h-5 rounded-full relative transition-colors shrink-0 ${lojaAberta ? 'bg-green-600' : 'bg-white/10'}`}
-            >
+            <button onClick={handleToggleLoja} className={`w-10 h-5 rounded-full relative transition-colors shrink-0 ${lojaAberta ? 'bg-green-600' : 'bg-white/10'}`}>
               <div className={`w-3 h-3 rounded-full bg-white absolute top-1 transition-all ${lojaAberta ? 'left-6' : 'left-1'}`}></div>
             </button>
           </div>
 
-          <button onClick={() => setAbaAtual('resumo')} className={`text-left px-4 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${abaAtual === 'resumo' ? 'bg-shaday-red text-white shadow-md' : 'text-shaday-muted hover:bg-white/5 hover:text-white'}`}>
+          <button 
+            onClick={() => setAbaAtual('resumo')}
+            className={`text-left px-4 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap shrink-0 h-[46px] md:h-auto flex items-center md:block ${abaAtual === 'resumo' ? 'bg-shaday-red text-white shadow-md' : 'text-shaday-muted hover:bg-white/5 hover:text-white'}`}
+          >
             Visão Geral
           </button>
 
-          <button onClick={() => setAbaAtual('pedidos')} className={`text-left px-4 py-3 rounded-xl text-sm font-medium transition-all flex items-center justify-between whitespace-nowrap ${abaAtual === 'pedidos' ? 'bg-shaday-red text-white shadow-md' : 'text-shaday-muted hover:bg-white/5 hover:text-white'}`}>
+          <button 
+            onClick={() => setAbaAtual('pedidos')}
+            className={`text-left px-4 py-3 rounded-xl text-sm font-medium transition-all flex items-center justify-between gap-3 whitespace-nowrap shrink-0 h-[46px] md:h-auto ${abaAtual === 'pedidos' ? 'bg-shaday-red text-white shadow-md' : 'text-shaday-muted hover:bg-white/5 hover:text-white'}`}
+          >
             <span>Pedidos</span>
             {pedidosPendentes > 0 && (
               <span className={`flex items-center justify-center w-5 h-5 text-[10px] font-bold rounded-full ${abaAtual === 'pedidos' ? 'bg-white text-shaday-red' : 'bg-shaday-red text-white'}`}>
@@ -100,20 +110,32 @@ export default function AdminDashboard() {
             )}
           </button>
           
-          <button onClick={() => setAbaAtual('taxas')} className={`text-left px-4 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${abaAtual === 'taxas' ? 'bg-shaday-red text-white shadow-md' : 'text-shaday-muted hover:bg-white/5 hover:text-white'}`}>
-            Áreas de Entrega
+          <button 
+            onClick={() => setAbaAtual('taxas')}
+            className={`text-left px-4 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap shrink-0 h-[46px] md:h-auto flex items-center md:block ${abaAtual === 'taxas' ? 'bg-shaday-red text-white shadow-md' : 'text-shaday-muted hover:bg-white/5 hover:text-white'}`}
+          >
+            Entrega
           </button>
 
-          <button onClick={() => setAbaAtual('categorias')} className={`text-left px-4 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${abaAtual === 'categorias' ? 'bg-shaday-red text-white shadow-md' : 'text-shaday-muted hover:bg-white/5 hover:text-white'}`}>
+          <button 
+            onClick={() => setAbaAtual('categorias')}
+            className={`text-left px-4 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap shrink-0 h-[46px] md:h-auto flex items-center md:block ${abaAtual === 'categorias' ? 'bg-shaday-red text-white shadow-md' : 'text-shaday-muted hover:bg-white/5 hover:text-white'}`}
+          >
             Categorias
           </button>
 
-          <button onClick={() => setAbaAtual('produtos')} className={`text-left px-4 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${abaAtual === 'produtos' ? 'bg-shaday-red text-white shadow-md' : 'text-shaday-muted hover:bg-white/5 hover:text-white'}`}>
+          <button 
+            onClick={() => setAbaAtual('produtos')}
+            className={`text-left px-4 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap shrink-0 h-[46px] md:h-auto flex items-center md:block ${abaAtual === 'produtos' ? 'bg-shaday-red text-white shadow-md' : 'text-shaday-muted hover:bg-white/5 hover:text-white'}`}
+          >
             Cardápio
           </button>
 
-          <button onClick={() => setAbaAtual('promocoes')} className={`text-left px-4 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${abaAtual === 'promocoes' ? 'bg-shaday-red text-white shadow-md' : 'text-shaday-muted hover:bg-white/5 hover:text-white'}`}>
-            Combos & Promoções
+          <button 
+            onClick={() => setAbaAtual('promocoes')}
+            className={`text-left px-4 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap shrink-0 h-[46px] md:h-auto flex items-center md:block ${abaAtual === 'promocoes' ? 'bg-shaday-red text-white shadow-md' : 'text-shaday-muted hover:bg-white/5 hover:text-white'}`}
+          >
+            Promoções
           </button>
         </nav>
 
@@ -125,12 +147,12 @@ export default function AdminDashboard() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
             </svg>
-            Ver Loja (Cliente)
+            Ver Loja
           </button>
         </div>
       </aside>
-      
-      <main className="flex-1 p-4 sm:p-8 overflow-y-auto h-full">
+
+      <main className="flex-1 p-4 sm:p-8 overflow-y-auto h-full relative">
         {abaAtual === 'taxas' && <AdminTaxas />}
         {abaAtual === 'pedidos' && <AdminPedidos />} 
         {abaAtual === 'produtos' && <AdminProdutos />}
