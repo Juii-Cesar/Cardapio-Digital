@@ -201,7 +201,9 @@ const createOrder = async (req, res) => {
     const itensProcessados = [];
 
     for (const item of itens) {
-      const qtd = parseInt(item.quantidade) || 1;
+      const parsedQtd = parseInt(item.quantidade);
+      const qtd = (parsedQtd && parsedQtd > 0) ? parsedQtd : 1;
+      
       let precoUnitario = 0;
 
       if (item.id_produto) {

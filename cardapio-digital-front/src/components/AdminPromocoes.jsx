@@ -170,11 +170,11 @@ export default function AdminPromocoes() {
           <div className="flex flex-col md:flex-row gap-6">
             <div className="flex-1 flex flex-col gap-4">
               <div>
-                <label className="block text-sm text-shaday-muted mb-1 ml-1">Descrição Comercial</label>
+                <label className="block text-sm text-shaday-muted mb-1 ml-1">Descrição</label>
                 <textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Descreva o que vem neste combo incrível..." rows="2" className="w-full bg-[#121212] border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-shaday-red resize-none" />
               </div>
               <div>
-                <label className="block text-sm text-shaday-muted mb-1 ml-1">Imagem em Destaque</label>
+                <label className="block text-sm text-shaday-muted mb-1 ml-1">Imagem</label>
                 <input id="promo-imagem" type="file" accept="image/*" onChange={(e) => setImagem(e.target.files[0])} className="w-full bg-[#121212] border border-white/10 rounded-xl p-2.5 text-white focus:outline-none focus:border-shaday-red file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-white/5 file:text-white hover:file:bg-white/10 transition-all cursor-pointer" />
               </div>
             </div>
