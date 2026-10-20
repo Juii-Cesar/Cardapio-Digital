@@ -4,8 +4,8 @@ import { useCart } from '../contexts/CartContext';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import AuthModal from '../components/AuthModal';
-import trashIcon from '../assets/trash.png'; 
-import GerenciarEnderecosModal from '../components/GerenciarEnderecosModal'; // <-- IMPORT DO MODAL
+import trashIcon from '../assets/trash.webp'; 
+import GerenciarEnderecosModal from '../components/GerenciarEnderecosModal';
 
 export default function Checkout() {
   const { cartItems, clearCart, removeFromCart } = useCart();
