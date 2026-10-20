@@ -74,7 +74,7 @@ export default function AdminDashboard() {
           <span className="font-bold text-lg">Gerência da Loja</span>
         </div>
         
-        <nav className="flex-1 flex flex-row md:flex-col gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden pb-2 md:pb-0">
+        <nav className="flex flex-row md:flex-col gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden pb-2 md:pb-0">
           <div className="shrink-0 mb-0 md:mb-6 px-4 py-3 bg-[#121212] rounded-xl border border-white/5 flex items-center justify-between gap-4">
             <span className={`text-xs font-bold flex items-center gap-2 ${lojaAberta ? 'text-green-500' : 'text-shaday-red'}`}>
               <div className={`w-2 h-2 rounded-full ${lojaAberta ? 'bg-green-500 animate-pulse' : 'bg-shaday-red'}`}></div>
@@ -160,17 +160,17 @@ export default function AdminDashboard() {
           </button>
         </nav>
 
-        <div className="mt-auto hidden md:block pt-4 border-t border-white/5">
-          <button 
-            onClick={() => window.open('/', '_blank')}
-            className="w-full bg-white/5 hover:bg-white/10 text-white border border-white/10 px-4 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-            </svg>
-            Ver Loja
-          </button>
-        </div>
+        <div className="hidden md:block mt-4 pt-4 border-t border-white/5">
+        <button 
+          onClick={() => window.open('/', '_blank')}
+          className="w-full bg-white/5 hover:bg-white/10 text-white border border-white/10 px-4 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+          Ver Loja (Cliente)
+        </button>
+      </div>
       </aside>
 
       <main className="flex-1 p-4 sm:p-8 overflow-y-auto">
