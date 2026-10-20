@@ -67,21 +67,19 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="h-screen w-full bg-shaday-bg text-white font-sans flex flex-col md:flex-row overflow-hidden">
+    <div className="min-h-screen bg-shaday-bg text-white font-sans flex flex-col md:flex-row">
       
-      {/* CORREÇÃO AQUI: Trocado 'h-full' por 'md:h-full' para não esticar no mobile */}
-      <aside className="w-full md:w-64 md:h-full bg-shaday-card border-b md:border-b-0 md:border-r border-white/5 p-4 flex flex-col shrink-0 relative z-10">
+      {/* BARRA LATERAL COMPACTA */}
+      <aside className="w-full md:w-64 bg-shaday-card border-b md:border-b-0 md:border-r border-white/5 p-4 flex flex-col shrink-0 relative z-10">
         
-        <div className="flex items-center gap-3 px-2 mb-4 md:mb-6 shrink-0">
+        <div className="flex items-center gap-3 px-2 mb-4 shrink-0">
           <img src={logoImg} alt="Logo" className="h-10 w-auto object-contain" />
           <span className="font-bold text-lg">Gerência da Loja</span>
         </div>
         
-        {/* CORREÇÃO AQUI: Trocado 'flex-1' por 'md:flex-1' */}
-        <nav className="md:flex-1 flex flex-row md:flex-col gap-2 overflow-x-auto md:overflow-y-auto overflow-y-hidden [&::-webkit-scrollbar]:hidden pb-2 md:pb-0 items-center md:items-stretch">
+        <nav className="flex flex-row md:flex-col gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden pb-2 md:pb-0 items-center md:items-stretch">
           
-          {/* Adicionado shrink-0, h-[46px] e flex items-center a todos os botões para forçar o tamanho certo no mobile */}
-          <div className="shrink-0 mb-0 md:mb-6 px-4 py-3 bg-[#121212] rounded-xl border border-white/5 flex items-center justify-between gap-4 h-[46px] md:h-auto">
+          <div className="shrink-0 mb-0 md:mb-4 px-4 py-3 bg-[#121212] rounded-xl border border-white/5 flex items-center justify-between gap-4 h-[46px] md:h-auto">
             <span className={`text-xs font-bold flex items-center gap-2 ${lojaAberta ? 'text-green-500' : 'text-shaday-red'}`}>
               <div className={`w-2 h-2 rounded-full ${lojaAberta ? 'bg-green-500 animate-pulse' : 'bg-shaday-red'}`}></div>
               {lojaAberta ? 'LOJA ABERTA' : 'LOJA FECHADA'}
@@ -139,7 +137,8 @@ export default function AdminDashboard() {
           </button>
         </nav>
 
-        <div className="mt-auto shrink-0 hidden md:block pt-4 border-t border-white/5">
+        {/* BOTÃO VER LOJA DIRETO ABAIXO DO MENU */}
+        <div className="hidden md:block mt-4 pt-4 border-t border-white/5 shrink-0">
           <button 
             onClick={() => window.open('/', '_blank')}
             className="w-full bg-white/5 hover:bg-white/10 text-white border border-white/10 px-4 py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-colors"
@@ -152,7 +151,7 @@ export default function AdminDashboard() {
         </div>
       </aside>
 
-      <main className="flex-1 p-4 sm:p-8 overflow-y-auto h-full relative">
+      <main className="flex-1 p-4 sm:p-8 overflow-y-auto">
         {abaAtual === 'taxas' && <AdminTaxas />}
         {abaAtual === 'pedidos' && <AdminPedidos />} 
         {abaAtual === 'produtos' && <AdminProdutos />}
