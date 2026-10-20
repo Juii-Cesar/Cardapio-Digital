@@ -244,15 +244,43 @@ export default function Checkout() {
           {enderecosSalvos.length > 0 && (
             <div className="mb-4">
               <div className="flex items-center gap-3 mb-3">
-                <div className="flex flex-1 gap-4 border border-white/5 bg-[#121212] p-2 rounded-xl">
-                  <label className="flex-1 flex items-center justify-center gap-2 text-sm text-white cursor-pointer select-none">
-                    <input type="radio" checked={!usarNovoEndereco} onChange={() => setUsarNovoEndereco(false)} className="accent-shaday-red" />
-                    Salvo
+                <div className="flex flex-1 bg-[#121212] p-1.5 rounded-xl border border-white/5 shadow-sm">
+                  <label className="relative flex-1 px-4 py-2 rounded-lg cursor-pointer flex items-center justify-center gap-2 group">
+                    <input 
+                      type="radio" 
+                      name="tipoEndereco" 
+                      className="peer sr-only" 
+                      checked={!usarNovoEndereco} 
+                      onChange={() => setUsarNovoEndereco(false)} 
+                    />
+                    <div className="absolute inset-0 rounded-lg bg-white/5 peer-checked:bg-white/10 opacity-0 peer-checked:opacity-100 transition-opacity"></div>
+                    
+                    <div className="relative w-4 h-4 rounded-full border-2 border-white/30 peer-checked:border-shaday-red flex items-center justify-center transition-colors">
+                      <div className="w-2 h-2 rounded-full bg-shaday-red opacity-0 peer-checked:opacity-100 transition-opacity scale-50 peer-checked:scale-100 duration-200"></div>
+                    </div>
+                    <span className="text-sm font-medium text-white/50 peer-checked:text-white transition-colors relative z-10">
+                      Salvo
+                    </span>
                   </label>
-                  <div className="w-px bg-white/10"></div>
-                  <label className="flex-1 flex items-center justify-center gap-2 text-sm text-white cursor-pointer select-none">
-                    <input type="radio" checked={usarNovoEndereco} onChange={() => setUsarNovoEndereco(true)} className="accent-shaday-red" />
-                    Novo
+
+                  <div className="w-[1px] bg-white/10 my-1 mx-1"></div>
+                  
+                  <label className="relative flex-1 px-4 py-2 rounded-lg cursor-pointer flex items-center justify-center gap-2 group">
+                    <input 
+                      type="radio" 
+                      name="tipoEndereco" 
+                      className="peer sr-only" 
+                      checked={usarNovoEndereco} 
+                      onChange={() => setUsarNovoEndereco(true)} 
+                    />
+                    <div className="absolute inset-0 rounded-lg bg-white/5 peer-checked:bg-white/10 opacity-0 peer-checked:opacity-100 transition-opacity"></div>
+                    
+                    <div className="relative w-4 h-4 rounded-full border-2 border-white/30 peer-checked:border-shaday-red flex items-center justify-center transition-colors">
+                      <div className="w-2 h-2 rounded-full bg-shaday-red opacity-0 peer-checked:opacity-100 transition-opacity scale-50 peer-checked:scale-100 duration-200"></div>
+                    </div>
+                    <span className="text-sm font-medium text-white/50 peer-checked:text-white transition-colors relative z-10">
+                      Novo
+                    </span>
                   </label>
                 </div>
                 

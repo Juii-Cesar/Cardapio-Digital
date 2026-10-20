@@ -6,7 +6,55 @@ export default function MeusPedidosModal({ onClose }) {
   const [loading, setLoading] = useState(true);
   const [cliente, setCliente] = useState(null);
   const [telefoneLoja, setTelefoneLoja] = useState('');
+
   const [touchStartY, setTouchStartY] = useState(0);
+  const [translateY, setTranslateY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+
+  useEffect(() => {
+
+    window.history.pushState('modal-pedidos', '', window.location.pathname);
+
+    const handlePopState = () => {
+      onClose();
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+
+      if (window.history.state === 'modal-pedidos') {
+        window.history.back();
+      }
+    };
+  }, [onClose]);
+
+  const handleTouchStart = (e) => {
+    setTouchStartY(e.touches[0].clientY);
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isDragging) return;
+    const currentY = e.touches[0].clientY;
+    const diff = currentY - touchStartY;
+
+    if (diff > 0) {
+      setTranslateY(diff);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!isDragging) return;
+    setIsDragging(false);
+
+    if (translateY > 120) {
+      onClose();
+    } else {
+      setTranslateY(0);
+    }
+  };
 
   useEffect(() => {
     const clienteSalvo = localStorage.getItem('cliente');
@@ -61,28 +109,35 @@ export default function MeusPedidosModal({ onClose }) {
       className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-0 sm:p-4 animate-fade-in"
     >
       <div 
-        onTouchStart={(e) => setTouchStartY(e.touches[0].clientY)}
-        onTouchEnd={(e) => {
-          if (e.changedTouches[0].clientY - touchStartY > 80) onClose();
+        style={{
+          transform: `translateY(${translateY}px)`,
+          transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)'
         }}
         className="bg-shaday-bg w-full max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl relative border border-shaday-card flex flex-col h-[85vh] sm:h-[70vh] animate-slide-up"
       >
-        
-        <div className="w-full flex justify-center absolute top-2 left-0 z-20 sm:hidden">
-          <div className="w-12 h-1.5 bg-white/20 rounded-full"></div>
-        </div>
-        
-        <div className="p-5 border-b border-white/5 flex items-center justify-between shrink-0">
-          <div>
-            <h2 className="text-xl font-bold text-white">Os Meus Pedidos</h2>
-            <p className="text-shaday-muted text-xs mt-1">Acompanhe o status em tempo real</p>
+
+        <div 
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          className="shrink-0 relative rounded-t-3xl sm:rounded-3xl z-20"
+        >
+          <div className="w-full flex justify-center absolute top-2 left-0 sm:hidden">
+            <div className="w-12 h-1.5 bg-white/20 rounded-full"></div>
           </div>
-          <button 
-            onClick={onClose} 
-            className="bg-white/5 text-white w-8 h-8 rounded-full flex items-center justify-center hover:bg-shaday-red transition-colors border border-white/10"
-          >
-            ✕
-          </button>
+          
+          <div className="p-5 pt-7 border-b border-white/5 flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-white">Os Meus Pedidos</h2>
+              <p className="text-shaday-muted text-xs mt-1">Acompanhe o status em tempo real</p>
+            </div>
+            <button 
+              onClick={onClose} 
+              className="bg-white/5 text-white w-8 h-8 rounded-full flex items-center justify-center hover:bg-shaday-red transition-colors border border-white/10"
+            >
+              ✕
+            </button>
+          </div>
         </div>
 
         <div className="p-5 overflow-y-auto flex-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full flex flex-col gap-4">
