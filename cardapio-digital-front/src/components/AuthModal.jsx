@@ -203,7 +203,7 @@ export default function AuthModal({ onClose, onSuccess }) {
             </div>
 
             <button type="submit" disabled={loading} className="w-full bg-shaday-red text-white py-3.5 rounded-xl font-bold text-base hover:bg-red-700 transition-colors mt-2 disabled:opacity-50">
-              {loading ? 'A criar conta...' : 'Concluir Registo'}
+              {loading ? 'Criando...' : 'Concluir Registo'}
             </button>
 
             <p className="text-center text-sm text-shaday-muted mt-2">
