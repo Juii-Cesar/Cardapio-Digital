@@ -3,7 +3,7 @@ import { Toaster } from 'react-hot-toast';
 import ClientHome from './pages/ClientHome';
 import AdminDashboard from './pages/AdminDashboard';
 import Checkout from './pages/Checkout';
-import AdminLogin from './pages/AdminLogin'; //
+import AdminLogin from './pages/AdminLogin';
 
 function App() {
   return (

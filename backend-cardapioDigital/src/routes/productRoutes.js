@@ -9,6 +9,7 @@ const upload  = multer({storage: multer.memoryStorage()});
 
 router.get('/produtos', productController.getProducts);
 router.post('/produtos',verifyAdminToken, upload.single('imagem'), productController.createProduct);
-router.put('/produtos/:id',verifyAdminToken, productController.updateProduct);
+router.put('/produtos/:id',verifyAdminToken, upload.single('imagem'), productController.updateProduct);
+
 router.delete('/produtos/:id',verifyAdminToken, productController.deleteProduct);
 module.exports = router;

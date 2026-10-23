@@ -99,30 +99,75 @@ const createProduct = async (req, res) => {
 
 //atualiza um produto existente
 const updateProduct = async(req,res)=>{
-  const{id}=req.params;
-  const {id_categoria, nome, preco, descricao, ativo}= req.body;
+  const { id } = req.params;
+  const { id_categoria, nome, preco, descricao, ativo } = req.body;
+  const imageFile = req.file; // Agora apanha a imagem enviada pelo frontend
 
-  try{
-    const result = await db.query(
-      `UPDATE produtos
-       SET id_categoria = COALESCE($1, id_categoria),
-           nome = COALESCE($2, nome),
-           preco = COALESCE($3, preco),
-           descricao = COALESCE($4, descricao),
-           ativo = COALESCE($5, ativo)
-       WHERE id = $6
-       RETURNING *`,
-      [id_categoria, nome, preco, descricao, ativo, id],
-    );
+  try {
+    let url_img_produto = null;
 
-    if(result.rows.length=== 0){
+    // 1. Se o admin enviou uma nova imagem, fazemos o upload
+    if (imageFile) {
+      const fileName = `${Date.now()}-${imageFile.originalname.replace(/\s+/g, '-')}`;
+
+      const { data, error } = await supabase.storage
+        .from("produtos")
+        .upload(fileName, imageFile.buffer, {
+          contentType: imageFile.mimetype,
+        });
+
+      if (error) {
+        console.error("Erro no upload da nova imagem: ", error);
+        return res.status(500).json({ error: "Erro ao fazer upload da imagem." });
+      }
+
+      const { data: publicUrlData } = supabase.storage
+        .from("produtos")
+        .getPublicUrl(fileName);
+        
+      url_img_produto = publicUrlData.publicUrl;
+    }
+
+    // 2. Monta a query de forma dinâmica
+    let query;
+    let queryParams;
+
+    if (url_img_produto) {
+      // Se há imagem nova, atualiza o campo url_img_produto
+      query = `UPDATE produtos
+               SET id_categoria = COALESCE($1, id_categoria),
+                   nome = COALESCE($2, nome),
+                   preco = COALESCE($3, preco),
+                   descricao = COALESCE($4, descricao),
+                   ativo = COALESCE($5, ativo),
+                   url_img_produto = $6
+               WHERE id = $7
+               RETURNING *`;
+      queryParams = [id_categoria, nome, preco, descricao, ativo, url_img_produto, id];
+    } else {
+      // Se não há imagem nova, mantém a imagem que já estava no banco
+      query = `UPDATE produtos
+               SET id_categoria = COALESCE($1, id_categoria),
+                   nome = COALESCE($2, nome),
+                   preco = COALESCE($3, preco),
+                   descricao = COALESCE($4, descricao),
+                   ativo = COALESCE($5, ativo)
+               WHERE id = $6
+               RETURNING *`;
+      queryParams = [id_categoria, nome, preco, descricao, ativo, id];
+    }
+
+    const result = await db.query(query, queryParams);
+
+    if (result.rows.length === 0) {
       return res.status(404).json({error:'produto nao encontrado'});
     }
+    
     return res.status(200).json({
       message:'produto atualizado com sucesso!',
       product: result.rows[0]
     });
-  }catch(error){
+  } catch(error) {
     console.error('Erro interno ao atualizar produto: ',error);
     return res.status(500).json({error:'erro interno ao atualizar produto.'});
   }

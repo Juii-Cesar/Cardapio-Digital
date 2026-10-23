@@ -27,8 +27,14 @@ export function CartProvider({ children }) {
     });
   };
 
+  const clearCart = () => setCartItems([]);
+
+  const removeFromCart = (indexParaRemover) => {
+    setCartItems((prevItems) => prevItems.filter((_, index) => index !== indexParaRemover));
+  };
+
   return (
-    <CartContext.Provider value={{ cartItems, addToCart }}>
+    <CartContext.Provider value={{ cartItems, addToCart, clearCart, removeFromCart }}>
       {children}
     </CartContext.Provider>
   );

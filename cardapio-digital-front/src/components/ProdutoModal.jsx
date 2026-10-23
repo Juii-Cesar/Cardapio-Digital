@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import logoImg from '../assets/logo.png';
 import { useCart } from '../contexts/CartContext';
 
@@ -8,7 +8,30 @@ export default function ProdutoModal({ produto, onClose }) {
   const [quantidade, setQuantidade] = useState(1);
   const [ingredientesRemovidos, setIngredientesRemovidos] = useState([]);
   const [observacao, setObservacao] = useState('');
+
   const [touchStartY, setTouchStartY] = useState(0);
+  const [translateY, setTranslateY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+
+  useEffect(() => {
+    if (!produto) return;
+
+    window.history.pushState('modal-produto', '', window.location.pathname);
+
+    const handlePopState = () => {
+      onClose();
+    };
+
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+
+      if (window.history.state === 'modal-produto') {
+        window.history.back();
+      }
+    };
+  }, [produto, onClose]);
 
   if (!produto) return null;
 
@@ -35,37 +58,68 @@ export default function ProdutoModal({ produto, onClose }) {
     onClose();
   };
 
+  const handleTouchStart = (e) => {
+    setTouchStartY(e.touches[0].clientY);
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e) => {
+    if (!isDragging) return;
+    const currentY = e.touches[0].clientY;
+    const diff = currentY - touchStartY;
+
+    if (diff > 0) {
+      setTranslateY(diff);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!isDragging) return;
+    setIsDragging(false);
+
+    if (translateY > 120) {
+      onClose();
+    } else {
+      setTranslateY(0);
+    }
+  };
+
   return (
     <div
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-0 sm:p-4 transition-opacity"
     >
       <div
-        onTouchStart={(e) => setTouchStartY(e.touches[0].clientY)}
-        onTouchEnd={(e) => {
-          if (e.changedTouches[0].clientY - touchStartY > 80) onClose();
+        style={{
+          transform: `translateY(${translateY}px)`,
+          transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)'
         }}
         className="bg-shaday-bg w-full max-w-md rounded-t-3xl sm:rounded-3xl overflow-hidden flex flex-col max-h-[90vh] shadow-2xl relative border border-shaday-card animate-slide-up"
       >
-        
-        <div className="w-full flex justify-center pt-3 pb-1 sm:hidden absolute top-0 z-20">
-          <div className="w-12 h-1.5 bg-white/30 rounded-full"></div>
-        </div>
 
-        <button 
-          onClick={onClose}
-          className="absolute top-4 right-4 z-10 bg-black/50 text-white w-8 h-8 rounded-full flex items-center justify-center hover:bg-shaday-red transition-colors"
+        <div 
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          className="w-full h-56 bg-shaday-card relative shrink-0 z-20 touch-none"
         >
-          ✕
-        </button>
+          <div className="w-full flex justify-center pt-3 pb-1 sm:hidden absolute top-0 z-20">
+            <div className="w-12 h-1.5 bg-white/30 rounded-full"></div>
+          </div>
 
-        <div className="w-full h-56 bg-shaday-card relative shrink-0">
+          <button 
+            onClick={onClose}
+            className="absolute top-4 right-4 z-30 bg-black/50 text-white w-8 h-8 rounded-full flex items-center justify-center hover:bg-shaday-red transition-colors"
+          >
+            ✕
+          </button>
+
           <img 
             src={produto.url_img_produto || logoImg} 
             alt={produto.nome} 
-            className={`w-full h-full ${produto.url_img_produto ? 'object-cover' : 'object-contain p-8 opacity-50'}`}
+            className={`w-full h-full pointer-events-none ${produto.url_img_produto ? 'object-cover' : 'object-contain p-8 opacity-50'}`}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-shaday-bg to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-shaday-bg to-transparent pointer-events-none"></div>
         </div>
 
         <div className="p-5 flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden pt-6 sm:pt-5">

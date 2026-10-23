@@ -122,31 +122,78 @@ const createPromo = async (req, res)=>{
 
 //editar promos aticas 
 
-const updatePromo = async (req, res)=>{
-  const {id}= req.params;
-  const {nome,preco,descricao,ativo}=req.body
+const updatePromo = async (req, res) => {
+  const { id } = req.params;
+  const { nome, preco, descricao, ativo } = req.body;
+  const imageFile = req.file; 
 
-  try{
-    const result = await db.query(
-      `UPDATE promo
-      SET nome = COALESCE($1, nome),
-      preco = COALESCE($2, preco),
-      descricao = COALESCE($3, descricao),
-      ativo = COALESCE($4, ativo)
-      WHERE id = $5
-      RETURNING *`,
-      [nome, preco, descricao, ativo, id]
-    );
-    if(result.rows.length === 0){
-      return res.status(404).json({error:'Promoção nao encontrada'})
+  try {
+    let url_img = null;
+
+    
+    if (imageFile) {
+      const fileName = `${Date.now()}-${imageFile.originalname.replace(/\s+/g, "-")}`;
+
+      const { data, error } = await supabase.storage
+        .from("produtos") // Nome do bucket para promoções no Supabase Storage
+        .upload(fileName, imageFile.buffer, {
+          contentType: imageFile.mimetype,
+        });
+
+      if (error) {
+        console.error("Erro no upload da imagem da promoção: ", error);
+        return res
+          .status(500)
+          .json({ error: "Erro ao fazer upload da imagem da promoção." });
+      }
+
+      const { data: publicUrlData } = supabase.storage
+        .from("produtos")
+        .getPublicUrl(fileName);
+
+      url_img = publicUrlData.publicUrl;
     }
+
+    // 2. Monta a query dinamicamente preservando a imagem antiga se nenhuma nova for enviada
+    let query;
+    let queryParams;
+
+    if (url_img) {
+      query = `UPDATE promo
+               SET nome = COALESCE($1, nome),
+                   preco = COALESCE($2, preco),
+                   descricao = COALESCE($3, descricao),
+                   ativo = COALESCE($4, ativo),
+                   url_img = $5
+               WHERE id = $6
+               RETURNING *`;
+      queryParams = [nome, preco, descricao, ativo, url_img, id];
+    } else {
+      query = `UPDATE promo
+               SET nome = COALESCE($1, nome),
+                   preco = COALESCE($2, preco),
+                   descricao = COALESCE($3, descricao),
+                   ativo = COALESCE($4, ativo)
+               WHERE id = $5
+               RETURNING *`;
+      queryParams = [nome, preco, descricao, ativo, id];
+    }
+
+    const result = await db.query(query, queryParams);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Promoção não encontrada." });
+    }
+
     return res.status(200).json({
-      message: 'promo atualizada com sucesso!',
-      promo: result.rows[0]
+      message: "Promoção atualizada com sucesso!",
+      promo: result.rows[0],
     });
-  }catch(error){
-    console.error('erro interno ao atualizar promo', error);
-    return res.status(500).json({error: 'erro interno ao atualizar promo'});
+  } catch (error) {
+    console.error("Erro interno ao atualizar promoção: ", error);
+    return res
+      .status(500)
+      .json({ error: "Erro interno ao atualizar promoção." });
   }
 };
 

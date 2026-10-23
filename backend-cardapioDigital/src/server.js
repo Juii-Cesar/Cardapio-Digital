@@ -12,6 +12,7 @@ const promoRoutes = require('./routes/promoRoutes');
 const authRoutes = require('./routes/authRoutes');
 const adminAuthRoutes = require('./routes/adminAuthRoutes');
 const shopRoutes = require('./routes/shopRoutes');
+const addressRoutes = require('./routes/addressRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -27,7 +28,7 @@ app.use('/api', promoRoutes);
 app.use('/api', authRoutes);
 app.use('/api', adminAuthRoutes);
 app.use('/api', shopRoutes)
-
+app.use('/api', addressRoutes);
 //rota de teste
 app.get('/', (req,res)=>{
     return res.json({message: "API do Restaurante rodando com sucesso!"});
