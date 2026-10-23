@@ -8,7 +8,7 @@ const upload = multer({storage: multer.memoryStorage()});
 
 router.get('/promo', promoController.getPromos);
 router.post('/promo', verifyAdminToken, upload.single('imagem'), promoController.createPromo);
-router.put('/promo/:id',verifyAdminToken, promoController.updatePromo);
+router.put("/promo/:id", verifyAdminToken, upload.single("imagem"), promoController.updatePromo,);
 router.delete('/promo/:id',verifyAdminToken, promoController.deletePromo);
 
 module.exports = router;
