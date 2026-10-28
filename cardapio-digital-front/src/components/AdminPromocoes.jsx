@@ -12,6 +12,7 @@ export default function AdminPromocoes() {
   const [imagem, setImagem] = useState(null);
   const [produtosSelecionados, setProdutosSelecionados] = useState([]);
   const [editandoId, setEditandoId] = useState(null);
+  const [modalExclusao, setModalExclusao] = useState({ isOpen: false, id: null, nome: '' });
 
   const carregarDados = useCallback(async () => {
     try {
@@ -30,7 +31,6 @@ export default function AdminPromocoes() {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line
     carregarDados();
   }, [carregarDados]);
 
@@ -69,20 +69,21 @@ export default function AdminPromocoes() {
     if (fileInput) fileInput.value = '';
   };
 
-  const handleExcluir = async (id, nomePromo) => {
-    const confirmar = window.confirm(`Tem a certeza que deseja eliminar o combo "${nomePromo}"?`);
-    if (!confirmar) return;
-
+  const confirmarExclusao = async () => {
     try {
       const token = localStorage.getItem('adminToken');
       const config = { headers: { Authorization: `Bearer ${token}` } };
       
-      await axios.delete(`${import.meta.env.VITE_API_URL}/api/promo/${id}`, config);
+      await axios.delete(`${import.meta.env.VITE_API_URL}/api/promo/${modalExclusao.id}`, config);
+      
+      setPromocoes(prev => prev.filter(p => p.id !== modalExclusao.id));
+      setModalExclusao({ isOpen: false, id: null, nome: '' });
+      toast.success("Combo removido com sucesso!");
       carregarDados(); 
-      toast.success("Combo removido!");
     } catch (error) {
       console.error("Erro ao remover promoção:", error);
       toast.error("Erro ao remover o combo.");
+      setModalExclusao({ isOpen: false, id: null, nome: '' });
     }
   };
 
@@ -148,7 +149,7 @@ export default function AdminPromocoes() {
   );
 
   return (
-    <div className="flex flex-col gap-6 w-full">
+    <div className="flex flex-col gap-6 w-full relative">
       
       <div className="bg-shaday-card p-5 md:p-6 rounded-2xl border border-white/5 shadow-sm">
         <h2 className="text-white font-bold text-lg mb-6 border-b border-white/10 pb-3">
@@ -283,7 +284,7 @@ export default function AdminPromocoes() {
                     Editar
                   </button>
                   <button 
-                    onClick={() => handleExcluir(promo.id, promo.nome)}
+                    onClick={() => setModalExclusao({ isOpen: true, id: promo.id, nome: promo.nome })}
                     className="p-1.5 bg-white/5 hover:bg-shaday-red text-white/70 hover:text-white rounded transition-colors border border-white/10 flex items-center justify-center"
                     title="Eliminar Promoção"
                   >
@@ -302,6 +303,27 @@ export default function AdminPromocoes() {
         </div>
       </div>
 
+      {modalExclusao.isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-[#121212] border border-white/10 rounded-2xl p-6 w-full max-w-sm flex flex-col items-center text-center shadow-2xl">
+            <div className="w-14 h-14 bg-shaday-red/10 rounded-full flex items-center justify-center mb-4 border border-shaday-red/20 text-shaday-red">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+            </div>
+            <h3 className="text-white font-bold text-lg mb-1">Confirmar Exclusão</h3>
+            <p className="text-shaday-muted text-sm mb-6">
+              Tem certeza que deseja remover o combo <br/><span className="text-white font-bold">"{modalExclusao.nome}"</span>?
+            </p>
+            <div className="flex w-full gap-3">
+              <button onClick={() => setModalExclusao({ isOpen: false, id: null, nome: '' })} className="flex-1 py-3 rounded-xl font-bold text-white bg-white/5 hover:bg-white/10 transition-colors border border-white/10">
+                Cancelar
+              </button>
+              <button onClick={confirmarExclusao} className="flex-1 py-3 rounded-xl font-bold text-white bg-shaday-red hover:bg-red-700 transition-colors shadow-lg shadow-shaday-red/20">
+                Remover
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
