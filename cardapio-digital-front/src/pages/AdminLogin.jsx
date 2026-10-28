@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import iconeAdmin from '../assets/adm.webp';
 
 export default function AdminLogin() {
   const [usuario, setUsuario] = useState('');
@@ -34,11 +35,10 @@ export default function AdminLogin() {
   return (
     <div className="min-h-screen bg-shaday-bg flex items-center justify-center p-4 relative overflow-hidden">
       
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-shaday-red/5 rounded-full blur-[100px] z-0 pointer-events-none"></div>
-
       <div className="bg-shaday-card w-full max-w-sm rounded-3xl p-8 shadow-2xl relative z-10 border border-white/5 flex flex-col items-center">
         
-        <div className="w-16 h-16 bg-shaday-red/10 rounded-2xl border border-shaday-red/20 flex items-center justify-center mb-6">
+        <div className="mx-auto w-20 h-20 rounded-2xl flex items-center justify-center mb-6 overflow-hidden bg-white/5 border border-white/10 p-2">
+           <img src={iconeAdmin} alt="Ícone Painel" className="w-full h-full object-contain invert opacity-90" />
         </div>
 
         <h1 className="text-2xl font-bold text-white mb-2 text-center">Painel de Gestão</h1>

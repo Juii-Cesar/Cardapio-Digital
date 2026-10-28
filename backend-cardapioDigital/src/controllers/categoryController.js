@@ -1,6 +1,5 @@
 const db = require('../config/db');
 
-//cria uma nova categoria
 const createCategory = async (req, res)=>{
     const {nome} = req.body;
 
@@ -20,10 +19,9 @@ const createCategory = async (req, res)=>{
     }
 };
 
-//lista todas as categorias
-const  getCategories = async(req, res)=>{
+const getCategories = async(req, res)=>{
     try{
-        const result = await db.query('SELECT * FROM categorias ORDER BY nome');
+        const result = await db.query('SELECT * FROM categorias WHERE ativo = true ORDER BY nome');
         return res.status(200).json(result.rows)
     } catch (error){
         console.error('Erro ao buscar categorias: ', error);

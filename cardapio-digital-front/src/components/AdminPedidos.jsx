@@ -8,6 +8,7 @@ export default function AdminPedidos() {
   const [loading, setLoading] = useState(true);
   const [filtroMobile, setFiltroMobile] = useState('Pendente');
   const [ocultarConcluidos, setOcultarConcluidos] = useState(false);
+  const [modalExclusao, setModalExclusao] = useState({ isOpen: false, id: null, nome: '' });
 
   const quantidadePendentesRef = useRef(0);
   const primeiraCarga = useRef(true);
@@ -18,10 +19,22 @@ export default function AdminPedidos() {
       const config = { headers: { Authorization: `Bearer ${token}` } };
       
       const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/pedidos`, config);
+      
       if (Array.isArray(response.data)) {
-        setPedidos(response.data);
+        const DOZE_HORAS = 12 * 60 * 60 * 1000;
+        const agora = Date.now();
+        
+        const pedidosFiltrados = response.data.filter(pedido => {
+          if (pedido.status === 'Concluido' || pedido.status === 'Cancelado') {
+            const dataPedido = new Date(pedido.criado_em.includes('Z') ? pedido.criado_em : `${pedido.criado_em}Z`).getTime();
+            return (agora - dataPedido) < DOZE_HORAS;
+          }
+          return true;
+        });
 
-        const pendentesAtuais = response.data.filter(p => p.status && p.status.toLowerCase() === 'pendente').length;
+        setPedidos(pedidosFiltrados);
+
+        const pendentesAtuais = pedidosFiltrados.filter(p => p.status && p.status.toLowerCase() === 'pendente').length;
         
         if (!primeiraCarga.current && pendentesAtuais > quantidadePendentesRef.current) {
           const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
@@ -73,6 +86,18 @@ export default function AdminPedidos() {
     } catch (error) {
       console.error("Erro ao atualizar status:", error);
       toast.error("Erro ao mover o pedido.");
+    }
+  };
+
+  const confirmarCancelamento = async () => {
+    try {
+      const token = localStorage.getItem('adminToken');
+      await axios.put(`${import.meta.env.VITE_API_URL}/api/pedidos/${modalExclusao.id}/status`, { status: 'Cancelado' }, { headers: { Authorization: `Bearer ${token}` } });
+      setModalExclusao({ isOpen: false, id: null, nome: '' });
+      fetchPedidos();
+      toast.success("Pedido cancelado.");
+    } catch(e) {
+      toast.error("Erro ao cancelar pedido.");
     }
   };
 
@@ -251,18 +276,7 @@ export default function AdminPedidos() {
                     <div className="flex gap-2 justify-end mt-1">
                       {(!isCancelado && statusFiltro !== 'Concluido') && (
                         <button 
-                          onClick={async () => {
-                            if(window.confirm("Tem a certeza que quer cancelar este pedido?")) {
-                              try {
-                                const token = localStorage.getItem('adminToken');
-                                await axios.put(`${import.meta.env.VITE_API_URL}/api/pedidos/${pedido.id_pedido}/status`, { status: 'Cancelado' }, { headers: { Authorization: `Bearer ${token}` } });
-                                fetchPedidos();
-                                toast.success("Pedido cancelado.");
-                              } catch(e) {
-                                toast.error("Erro ao cancelar pedido.");
-                              }
-                            }
-                          }}
+                          onClick={() => setModalExclusao({ isOpen: true, id: pedido.id_pedido, nome: `Pedido #${String(pedido.id_pedido).substring(0,6).toUpperCase()}` })}
                           className="text-[10px] uppercase tracking-wider font-bold text-white/50 border border-white/10 hover:border-shaday-red hover:text-shaday-red px-3 py-1.5 rounded-lg transition-colors"
                         >
                           Cancelar
@@ -303,7 +317,7 @@ export default function AdminPedidos() {
   ];
 
   return (
-    <div className="flex flex-col h-[calc(100vh-6rem)]">
+    <div className="flex flex-col h-[calc(100vh-6rem)] relative">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
            <h2 className="text-white font-bold text-2xl">Pedidos</h2>
@@ -353,6 +367,28 @@ export default function AdminPedidos() {
          {renderColuna('Concluídos', 'Concluido')}
          {renderColuna('Cancelados', 'Cancelado')}
       </div>
+
+      {modalExclusao.isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-[#121212] border border-white/10 rounded-2xl p-6 w-full max-w-sm flex flex-col items-center text-center shadow-2xl">
+            <div className="w-14 h-14 bg-shaday-red/10 rounded-full flex items-center justify-center mb-4 border border-shaday-red/20 text-shaday-red">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+            </div>
+            <h3 className="text-white font-bold text-lg mb-1">Confirmar Cancelamento</h3>
+            <p className="text-shaday-muted text-sm mb-6">
+              Tem certeza que deseja cancelar o <br/><span className="text-white font-bold">"{modalExclusao.nome}"</span>?
+            </p>
+            <div className="flex w-full gap-3">
+              <button onClick={() => setModalExclusao({ isOpen: false, id: null, nome: '' })} className="flex-1 py-3 rounded-xl font-bold text-white bg-white/5 hover:bg-white/10 transition-colors border border-white/10">
+                Voltar
+              </button>
+              <button onClick={confirmarCancelamento} className="flex-1 py-3 rounded-xl font-bold text-white bg-shaday-red hover:bg-red-700 transition-colors">
+                Cancelar Pedido
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
