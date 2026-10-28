@@ -317,7 +317,7 @@ export default function AdminPromocoes() {
               <button onClick={() => setModalExclusao({ isOpen: false, id: null, nome: '' })} className="flex-1 py-3 rounded-xl font-bold text-white bg-white/5 hover:bg-white/10 transition-colors border border-white/10">
                 Cancelar
               </button>
-              <button onClick={confirmarExclusao} className="flex-1 py-3 rounded-xl font-bold text-white bg-shaday-red hover:bg-red-700 transition-colors shadow-lg shadow-shaday-red/20">
+              <button onClick={confirmarExclusao} className="flex-1 py-3 rounded-xl font-bold text-white bg-shaday-red hover:bg-red-700 transition-colors">
                 Remover
               </button>
             </div>

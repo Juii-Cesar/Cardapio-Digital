@@ -382,7 +382,7 @@ export default function AdminPedidos() {
               <button onClick={() => setModalExclusao({ isOpen: false, id: null, nome: '' })} className="flex-1 py-3 rounded-xl font-bold text-white bg-white/5 hover:bg-white/10 transition-colors border border-white/10">
                 Voltar
               </button>
-              <button onClick={confirmarCancelamento} className="flex-1 py-3 rounded-xl font-bold text-white bg-shaday-red hover:bg-red-700 transition-colors shadow-lg shadow-shaday-red/20">
+              <button onClick={confirmarCancelamento} className="flex-1 py-3 rounded-xl font-bold text-white bg-shaday-red hover:bg-red-700 transition-colors">
                 Cancelar Pedido
               </button>
             </div>
